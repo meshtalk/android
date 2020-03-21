@@ -1,0 +1,2 @@
+rootProject.name='MeshTalk'
+include ':app'
