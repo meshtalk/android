@@ -1,4 +1,4 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">MeshTalk</string>
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
@@ -49,11 +49,39 @@
     <string name="dialog_saving_generating_keys">Generating Keys…</string>
     <string name="dialog_saving_creating_identity">Creating Identity…</string>
     <string name="list_item_identity_name_label">Name</string>
-    <string name="list_item_identity_public_key_label">00:00:00:00:00:00:00</string>
+    <string name="list_item_identity_public_key_label" translatable="false" tools:ignore="TypographyDashes">a339e1ec-a156-443d-91d3-fd0b3e8f32ed</string>
     <string name="list_item_identity_default_hint">Selecting this determines the default identity.</string>
     <string name="dialog_set_default_identity_title">Set Default?</string>
     <string name="dialog_set_default_identity_message">Do you want to use this identity as default?</string>
     <string name="dialog_unset_default_identity_title">Remove Default?</string>
     <string name="dialog_unset_default_identity_message">Do you want to remove this as the default identity?</string>
-    <string name="identity_list_empty">No Identities...</string>
+    <string name="identity_list_empty">No Identities…</string>
+    <string name="contact_list_empty">No contacts…</string>
+    <string name="list_item_contact_name_label">Name</string>
+    <string name="list_item_contact_public_key_label" translatable="false" tools:ignore="TypographyDashes">a339e1ec-a156-443d-91d3-fd0b3e8f32ed</string>
+    <string name="list_item_contact_start_chat_hint">Click this button to start a new chat with the corresponding contact.</string>
+    <string name="dialog_new_contact_title">New Contact…</string>
+    <string name="dialog_new_contact_decision_message">You can either enter the contact details manually, or scan a QR code.</string>
+    <string name="action_add_manually">Add Manually</string>
+    <string name="action_scan_qr_code">Scan QR</string>
+    <string name="dialog_new_contact_name_label">Name</string>
+    <string name="dialog_new_contact_contact_name">Name</string>
+    <string name="dialog_new_contact_uuid_label">UUID</string>
+    <string name="dialog_new_contact_contact_uuid">UUID</string>
+    <string name="dialog_new_contact_public_key_label">Public Key</string>
+    <string name="dialog_new_contact_contact_public_key">Public Key</string>
+    <string name="dialog_saving_creating_contact">Creating Contact…</string>
+    <string name="action_copy_public_key_pre">"Public key for "</string>
+    <string name="action_copy_public_key_post">" copied to clipboard!"</string>
+    <string name="dialog_error_title">Error!</string>
+    <string name="dialog_saving_saving_contact">Saving Contact…</string>
+    <string name="dialog_new_contact_error_message">There was an error saving the contact. Make sure that you didn\'t paste in any newlines or spaces.</string>
+    <string name="dialog_identity_copy_message">What do you want to copy?</string>
+    <string name="action_copy_public_key">Copy Public Key</string>
+    <string name="action_copy_uuid">Copy UUID</string>
+    <string name="action_copy_uuid_pre">"UUID for "</string>
+    <string name="action_copy_uuid_post">" copied to clipboard!"</string>
+    <string name="dialog_start_chat_title">Start Chat?</string>
+    <string name="dialog_start_chat_message_pre">"Do you want to start a new chat with "</string>
+    <string name="dialog_start_chat_message_post">\?</string>
 </resources>

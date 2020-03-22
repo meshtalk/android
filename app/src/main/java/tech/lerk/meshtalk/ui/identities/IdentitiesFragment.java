@@ -1,11 +1,16 @@
 package tech.lerk.meshtalk.ui.identities;
 
 import android.app.AlertDialog;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Base64;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -31,6 +36,7 @@ import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
@@ -61,7 +67,7 @@ public class IdentitiesFragment extends Fragment {
 
         final ListView listView = root.findViewById(R.id.identity_list_view);
         identitiesViewModel.getIdentities().observe(getViewLifecycleOwner(), identities -> {
-            if(identities.size() > 0) {
+            if (identities.size() > 0) {
                 root.findViewById(R.id.identity_list_empty).setVisibility(View.INVISIBLE);
             } else {
                 root.findViewById(R.id.identity_list_empty).setVisibility(View.VISIBLE);
@@ -84,6 +90,37 @@ public class IdentitiesFragment extends Fragment {
 
                     Identity identity = this.getItem(position);
                     if (identity != null) {
+                        v.setOnLongClickListener(v12 -> {
+
+                            new AlertDialog.Builder(requireContext())
+                                    .setMessage(R.string.dialog_identity_copy_message)
+                                    .setPositiveButton(R.string.action_copy_public_key, (d, w) -> {
+                                        ClipboardManager clipboard = Objects.requireNonNull((ClipboardManager)
+                                                requireContext().getSystemService(Context.CLIPBOARD_SERVICE));
+                                        String clipboardLabel = getString(R.string.action_copy_public_key_pre) + identity.getName();
+                                        String encodedKey = Base64.encodeToString(identity.getPublicKey().getEncoded(), Base64.DEFAULT);
+                                        ClipData clip = ClipData.newPlainText(clipboardLabel, encodedKey);
+                                        clipboard.setPrimaryClip(clip);
+                                        d.dismiss();
+                                        String toastMessage = getString(R.string.action_copy_public_key_pre) +
+                                                identity.getName() + getString(R.string.action_copy_public_key_post);
+                                        Toast.makeText(requireContext(), toastMessage, Toast.LENGTH_LONG).show();
+                                    })
+                                    .setNeutralButton(R.string.action_copy_uuid, (d, w) -> {
+                                        ClipboardManager clipboard = Objects.requireNonNull((ClipboardManager)
+                                                requireContext().getSystemService(Context.CLIPBOARD_SERVICE));
+                                        String clipboardLabel = getString(R.string.action_copy_uuid_pre) + identity.getName();
+                                        ClipData clip = ClipData.newPlainText(clipboardLabel, identity.getId().toString());
+                                        clipboard.setPrimaryClip(clip);
+                                        d.dismiss();
+                                        String toastMessage = getString(R.string.action_copy_uuid_pre) +
+                                                identity.getName() + getString(R.string.action_copy_uuid_post);
+                                        Toast.makeText(requireContext(), toastMessage, Toast.LENGTH_LONG).show();
+                                    })
+                                    .setNegativeButton(R.string.action_cancel, (d, w) -> d.dismiss())
+                                    .create().show();
+                            return true;
+                        });
                         String defaultIdentity = preferences.getString(Preferences.DEFAULT_IDENTITY.toString(), "");
                         if (defaultIdentity.equals(identity.getId().toString())) {
                             defaultIdentityButton.setImageDrawable(requireContext().getDrawable(R.drawable.ic_star_black_48dp));
@@ -101,7 +138,7 @@ public class IdentitiesFragment extends Fragment {
                                     .setNegativeButton(R.string.action_no, (d, w) -> d.dismiss())
                                     .create().show());
                         }
-                        identicon.show(identity.getId().toString() + identity.getName());
+                        identicon.show(identity.getId().toString());
                         name.setText(identity.getName());
                         publicKey.setText(Stuff.getFingerprintForKey((RSAPublicKey) identity.getPublicKey()));
                     }
@@ -164,7 +201,7 @@ public class IdentitiesFragment extends Fragment {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                identicon.show(newUUID.toString() + s);
+                identicon.show(newUUID.toString());
             }
 
             @Override
@@ -172,56 +209,58 @@ public class IdentitiesFragment extends Fragment {
 
             }
         });
-        identicon.show(newUUID.toString() + identityName.getText().toString());
+        identicon.show(newUUID.toString());
     }
 
     private void handleSave(DialogInterface d, UUID id) {
         String identityName = ((EditText) ((AlertDialog) d).findViewById(R.id.dialog_new_identity_identity_name)).getText().toString();
         d.dismiss();
-        AtomicReference<AlertDialog> loadingDialog = new AtomicReference<>();
-        requireActivity().runOnUiThread(() -> {
-            loadingDialog.set(new AlertDialog.Builder(requireContext())
-                    .setView(R.layout.dialog_loading)
-                    .setTitle(R.string.dialog_saving_title)
-                    .setCancelable(false).create());
-            loadingDialog.get().show();
-            TextView loadingText = loadingDialog.get().findViewById(R.id.loading_text);
-            loadingText.setText(R.string.dialog_saving_creating_identity);
+        AsyncTask.execute(() -> {
+            AtomicReference<AlertDialog> loadingDialog = new AtomicReference<>();
+            requireActivity().runOnUiThread(() -> {
+                loadingDialog.set(new AlertDialog.Builder(requireContext())
+                        .setView(R.layout.dialog_loading)
+                        .setTitle(R.string.dialog_saving_title)
+                        .setCancelable(false).create());
+                loadingDialog.get().show();
+                TextView loadingText = loadingDialog.get().findViewById(R.id.loading_text);
+                loadingText.setText(R.string.dialog_saving_creating_identity);
+            });
+            Stuff.waitOrDonT(200);
+            try {
+                Identity newIdentity = new Identity();
+                newIdentity.setId(id);
+                newIdentity.setName(identityName);
+                newIdentity.setChats(new ArrayList<>());
+
+                requireActivity().runOnUiThread(() -> {
+                    TextView loadingText = loadingDialog.get().findViewById(R.id.loading_text);
+                    loadingText.setText(R.string.dialog_saving_generating_keys);
+                });
+                Stuff.waitOrDonT(200);
+
+                KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+                keyGen.initialize(4096);
+                KeyPair keyPair = keyGen.genKeyPair();
+
+                requireActivity().runOnUiThread(() -> {
+                    TextView loadingText = loadingDialog.get().findViewById(R.id.loading_text);
+                    loadingText.setText(R.string.dialog_saving_saving_identity);
+                });
+                Stuff.waitOrDonT(200);
+
+                newIdentity.setPrivateKey(keyPair.getPrivate());
+                newIdentity.setPublicKey(keyPair.getPublic());
+                IdentityProvider.get(requireContext()).save(newIdentity);
+
+                requireActivity().runOnUiThread(() -> {
+                    loadingDialog.get().dismiss();
+                    updateIdentities();
+                });
+            } catch (NoSuchAlgorithmException | EncryptionException e) {
+                requireActivity().runOnUiThread(() -> loadingDialog.get().dismiss());
+                Log.e(TAG, "Unable to create new identity!", e);
+            }
         });
-        Stuff.waitOrDonT(200);
-        try {
-            Identity newIdentity = new Identity();
-            newIdentity.setId(id);
-            newIdentity.setName(identityName);
-            newIdentity.setChats(new ArrayList<>());
-
-            requireActivity().runOnUiThread(() -> {
-                TextView loadingText = loadingDialog.get().findViewById(R.id.loading_text);
-                loadingText.setText(R.string.dialog_saving_generating_keys);
-            });
-            Stuff.waitOrDonT(200);
-
-            KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
-            keyGen.initialize(4096);
-            KeyPair keyPair = keyGen.genKeyPair();
-
-            requireActivity().runOnUiThread(() -> {
-                TextView loadingText = loadingDialog.get().findViewById(R.id.loading_text);
-                loadingText.setText(R.string.dialog_saving_saving_identity);
-            });
-            Stuff.waitOrDonT(200);
-
-            newIdentity.setPrivateKey(keyPair.getPrivate());
-            newIdentity.setPublicKey(keyPair.getPublic());
-            IdentityProvider.get(requireContext()).save(newIdentity);
-
-            requireActivity().runOnUiThread(() -> {
-                loadingDialog.get().dismiss();
-                updateIdentities();
-            });
-        } catch (NoSuchAlgorithmException | EncryptionException e) {
-            requireActivity().runOnUiThread(() -> loadingDialog.get().dismiss());
-            Log.e(TAG, "Unable to create new identity!", e);
-        }
     }
 }

@@ -4,7 +4,7 @@ import java.security.PrivateKey;
 import java.util.List;
 import java.util.UUID;
 
-public class Identity extends Contact implements Comparable<Identity> {
+public class Identity extends Contact {
     private PrivateKey privateKey;
     private List<UUID> chats;
 
@@ -22,10 +22,5 @@ public class Identity extends Contact implements Comparable<Identity> {
 
     public void setChats(List<UUID> chats) {
         this.chats = chats;
-    }
-
-    @Override
-    public int compareTo(Identity o) {
-        return getId().compareTo(o.getId());
     }
 }

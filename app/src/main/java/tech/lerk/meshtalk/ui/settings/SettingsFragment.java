@@ -14,11 +14,14 @@ import androidx.preference.PreferenceManager;
 
 import java.util.Objects;
 
+import tech.lerk.meshtalk.KeyHolder;
 import tech.lerk.meshtalk.R;
 import tech.lerk.meshtalk.Stuff;
 import tech.lerk.meshtalk.entities.Preferences;
+import tech.lerk.meshtalk.providers.ChatProvider;
+import tech.lerk.meshtalk.providers.ContactProvider;
 import tech.lerk.meshtalk.providers.IdentityProvider;
-import tech.lerk.meshtalk.KeyHolder;
+import tech.lerk.meshtalk.providers.MessageProvider;
 
 import static tech.lerk.meshtalk.Stuff.waitOrDonT;
 
@@ -66,19 +69,22 @@ public class SettingsFragment extends PreferenceFragmentCompat {
                 progressBar.setProgress(1, true);
                 loadingTextView.setText(R.string.progress_self_destruct_deleting_contacts);
             });
-            //TODO: delete contacts...
+            ContactProvider contactProvider = ContactProvider.get(requireContext());
+            contactProvider.getAllIds().forEach(contactProvider::deleteById);
             waitOrDonT(200);
             requireActivity().runOnUiThread(() -> {
                 progressBar.setProgress(10, true);
                 loadingTextView.setText(R.string.progress_self_destruct_deleting_messages);
             });
-            //TODO: delete messages...
+            MessageProvider messageProvider = MessageProvider.get(requireContext());
+            messageProvider.getAllIds().forEach(messageProvider::deleteById);
             waitOrDonT(200);
             requireActivity().runOnUiThread(() -> {
                 progressBar.setProgress(20, true);
                 loadingTextView.setText(R.string.progress_self_destruct_deleting_chats);
             });
-            //TODO: delete chats...
+            ChatProvider chatProvider = ChatProvider.get(requireContext());
+            chatProvider.getAllIds().forEach(chatProvider::deleteById);
             waitOrDonT(200);
             requireActivity().runOnUiThread(() -> {
                 progressBar.setProgress(30, true);
@@ -96,15 +102,17 @@ public class SettingsFragment extends PreferenceFragmentCompat {
                     .edit().putString(Preferences.DEVICE_IV.toString(), Stuff.NONE)
                     .putBoolean(Preferences.FIRST_START.toString(), true).apply();
             waitOrDonT(250);
-            loadingDialog.dismiss();
-            new AlertDialog.Builder(requireContext())
-                    .setTitle(R.string.progress_self_destruct_finished)
-                    .setMessage(R.string.progress_self_destruct_finished_message)
-                    .setNeutralButton(R.string.action_okay, (d1, w) -> {
-                        d.dismiss();
-                        requireActivity().finishAndRemoveTask();
-                    })
-                    .create().show();
+            requireActivity().runOnUiThread(() -> {
+                loadingDialog.dismiss();
+                new AlertDialog.Builder(requireContext())
+                        .setTitle(R.string.progress_self_destruct_finished)
+                        .setMessage(R.string.progress_self_destruct_finished_message)
+                        .setNeutralButton(R.string.action_okay, (d1, w) -> {
+                            d.dismiss();
+                            requireActivity().finishAndRemoveTask();
+                        })
+                        .create().show();
+            });
         });
     }
 }

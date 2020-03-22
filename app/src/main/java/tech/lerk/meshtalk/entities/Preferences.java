@@ -9,6 +9,7 @@ public enum Preferences {
     IDENTITIES("identities"),
     MESSAGES("messages"),
     CONTACTS("contacts"),
+    CHATS("chats"),
     DEFAULT_IDENTITY("default_identity");
 
     private final String key;

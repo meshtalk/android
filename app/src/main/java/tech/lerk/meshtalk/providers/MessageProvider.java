@@ -16,8 +16,6 @@ import tech.lerk.meshtalk.KeyHolder;
 import tech.lerk.meshtalk.Stuff;
 import tech.lerk.meshtalk.entities.Message;
 import tech.lerk.meshtalk.entities.Preferences;
-import tech.lerk.meshtalk.exceptions.DecryptionException;
-import tech.lerk.meshtalk.exceptions.EncryptionException;
 
 public class MessageProvider implements Provider<Message> {
     private static MessageProvider instance = null;
@@ -40,12 +38,12 @@ public class MessageProvider implements Provider<Message> {
     }
 
     @Override
-    public Message getById(UUID id) throws DecryptionException {
+    public Message getById(UUID id) {
         return gson.fromJson(preferences.getString(messagePrefix + id, Stuff.EMPTY_OBJECT), Message.class);
     }
 
     @Override
-    public void save(Message element) throws EncryptionException {
+    public void save(Message element) {
         Set<String> messages = preferences.getStringSet(Preferences.MESSAGES.toString(), new TreeSet<>());
         messages.add(element.getId().toString());
         preferences.edit()

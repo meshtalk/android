@@ -1,12 +1,14 @@
 package tech.lerk.meshtalk.entities;
 
+import java.util.Date;
 import java.util.UUID;
 
 public class Message {
     private UUID id;
-    private UUID recipient;
+    private UUID chat;
     private UUID sender;
     private String content;
+    private Date date;
 
     public UUID getId() {
         return id;
@@ -24,12 +26,12 @@ public class Message {
         this.content = content;
     }
 
-    public UUID getRecipient() {
-        return recipient;
+    public UUID getChat() {
+        return chat;
     }
 
-    public void setRecipient(UUID recipient) {
-        this.recipient = recipient;
+    public void setChat(UUID chat) {
+        this.chat = chat;
     }
 
     public UUID getSender() {
@@ -38,5 +40,13 @@ public class Message {
 
     public void setSender(UUID sender) {
         this.sender = sender;
+    }
+
+    public Date getDate() {
+        return date;
+    }
+
+    public void setDate(Date date) {
+        this.date = date;
     }
 }

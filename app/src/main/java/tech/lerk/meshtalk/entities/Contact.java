@@ -3,7 +3,7 @@ package tech.lerk.meshtalk.entities;
 import java.security.PublicKey;
 import java.util.UUID;
 
-public class Contact {
+public class Contact implements Comparable<Contact> {
     private UUID id;
     private String name;
     private PublicKey publicKey;
@@ -30,5 +30,10 @@ public class Contact {
 
     public void setPublicKey(PublicKey publicKey) {
         this.publicKey = publicKey;
+    }
+
+    @Override
+    public int compareTo(Contact o) {
+        return getId().compareTo(o.getId());
     }
 }

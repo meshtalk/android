@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="@dimen/dialog_padding">
+
+    <im.delight.android.identicons.SymmetricIdenticon
+        android:id="@+id/dialog_new_contact_identicon"
+        android:layout_width="@dimen/identicon_size"
+        android:layout_height="@dimen/identicon_size"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true" />
+
+    <TextView
+        android:id="@+id/dialog_new_contact_name_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/dialog_new_contact_identicon"
+        android:layout_alignParentStart="true"
+        android:layout_marginTop="16dp"
+        android:text="@string/dialog_new_contact_name_label" />
+
+    <EditText
+        android:id="@+id/dialog_new_contact_contact_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/dialog_new_contact_name_label"
+        android:autofillHints="personName"
+        android:hint="@string/dialog_new_contact_contact_name"
+        android:imeOptions="actionNext"
+        android:inputType="textPersonName"
+        android:lines="1" />
+
+    <TextView
+        android:id="@+id/dialog_new_contact_uuid_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/dialog_new_contact_contact_name"
+        android:layout_alignParentStart="true"
+        android:layout_marginTop="16dp"
+        android:text="@string/dialog_new_contact_uuid_label" />
+
+    <EditText
+        android:id="@+id/dialog_new_contact_contact_uuid"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/dialog_new_contact_uuid_label"
+        android:hint="@string/dialog_new_contact_contact_uuid"
+        android:imeOptions="actionNext"
+        android:importantForAutofill="no"
+        android:inputType="textNoSuggestions"
+        android:lines="1" />
+
+    <TextView
+        android:id="@+id/dialog_new_contact_public_key_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/dialog_new_contact_contact_uuid"
+        android:layout_alignParentStart="true"
+        android:layout_marginTop="16dp"
+        android:text="@string/dialog_new_contact_public_key_label" />
+
+    <EditText
+        android:id="@+id/dialog_new_contact_contact_public_key"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/dialog_new_contact_public_key_label"
+        android:hint="@string/dialog_new_contact_contact_public_key"
+        android:imeOptions="actionDone"
+        android:importantForAutofill="no"
+        android:inputType="textNoSuggestions"
+        android:lines="1" />
+
+</RelativeLayout>

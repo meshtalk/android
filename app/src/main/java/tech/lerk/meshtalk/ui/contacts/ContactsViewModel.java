@@ -4,16 +4,23 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
+import java.util.Set;
+
+import tech.lerk.meshtalk.entities.Contact;
+
 public class ContactsViewModel extends ViewModel {
 
-    private MutableLiveData<String> mText;
+    private MutableLiveData<Set<Contact>> contacts;
 
     public ContactsViewModel() {
-        mText = new MutableLiveData<>();
-        mText.setValue("TODO: Add contact list");
+        contacts = new MutableLiveData<>();
     }
 
-    public LiveData<String> getText() {
-        return mText;
+    public LiveData<Set<Contact>> getContacts() {
+        return contacts;
+    }
+
+    public void setContacts(Set<Contact> identities) {
+        this.contacts.setValue(identities);
     }
 }
