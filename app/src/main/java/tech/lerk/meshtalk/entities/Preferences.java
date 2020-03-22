@@ -7,6 +7,8 @@ public enum Preferences {
     SELF_DESTRUCT("self_destruct"),
     DEVICE_IV("device_iv"),
     IDENTITIES("identities"),
+    MESSAGES("messages"),
+    CONTACTS("contacts"),
     DEFAULT_IDENTITY("default_identity");
 
     private final String key;

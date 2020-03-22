@@ -26,6 +26,7 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.GCMParameterSpec;
 
+import tech.lerk.meshtalk.KeyHolder;
 import tech.lerk.meshtalk.Stuff;
 import tech.lerk.meshtalk.adapters.PrivateKeyTypeAdapter;
 import tech.lerk.meshtalk.adapters.PublicKeyTypeAdapter;
@@ -34,16 +35,15 @@ import tech.lerk.meshtalk.entities.Preferences;
 import tech.lerk.meshtalk.exceptions.DecryptionException;
 import tech.lerk.meshtalk.exceptions.EncryptionException;
 
-public class IdentityProvider {
-    private static final String TAG = IdentityProvider.class.getCanonicalName();
+public class IdentityProvider implements Provider<Identity> {
     private static IdentityProvider instance = null;
-    private final KeyProvider keyProvider;
+    private final KeyHolder keyHolder;
     private final SharedPreferences preferences;
     private static final String identityPrefix = "IDENTITY_";
     private final Gson gson;
 
     private IdentityProvider(Context context) {
-        keyProvider = KeyProvider.get(context);
+        keyHolder = KeyHolder.get(context);
         preferences = PreferenceManager.getDefaultSharedPreferences(context.getApplicationContext());
         gson = new GsonBuilder()
                 .registerTypeAdapter(PrivateKey.class, new PrivateKeyTypeAdapter())
@@ -58,11 +58,12 @@ public class IdentityProvider {
         return instance;
     }
 
+    @Override
     public Identity getById(UUID id) throws DecryptionException {
         try {
             String encryptedIdentity = preferences.getString(identityPrefix + id, Stuff.EMPTY_OBJECT);
             Cipher c = Cipher.getInstance(Stuff.AES_MODE);
-            c.init(Cipher.DECRYPT_MODE, keyProvider.getAppKey(), new GCMParameterSpec(128, keyProvider.getDeviceIV()));
+            c.init(Cipher.DECRYPT_MODE, keyHolder.getAppKey(), new GCMParameterSpec(128, keyHolder.getDeviceIV()));
             byte[] decodedBytes = c.doFinal(Base64.decode(encryptedIdentity, Base64.DEFAULT));
             String decryptedJson = new String(decodedBytes, StandardCharsets.UTF_8);
             return gson.fromJson(decryptedJson, Identity.class);
@@ -73,11 +74,12 @@ public class IdentityProvider {
         }
     }
 
+    @Override
     public void save(Identity identity) throws EncryptionException {
         try {
             String json = gson.toJson(identity);
             Cipher c = Cipher.getInstance(Stuff.AES_MODE);
-            c.init(Cipher.ENCRYPT_MODE, keyProvider.getAppKey(), new GCMParameterSpec(128, keyProvider.getDeviceIV()));
+            c.init(Cipher.ENCRYPT_MODE, keyHolder.getAppKey(), new GCMParameterSpec(128, keyHolder.getDeviceIV()));
             byte[] encodedBytes = c.doFinal(json.getBytes(StandardCharsets.UTF_8));
             String encryptedBase64Encoded = Base64.encodeToString(encodedBytes, Base64.DEFAULT);
             Set<String> identities = preferences.getStringSet(Preferences.IDENTITIES.toString(), new TreeSet<>());
@@ -93,11 +95,13 @@ public class IdentityProvider {
         }
     }
 
+    @Override
     public Set<UUID> getAllIds() {
         return preferences.getStringSet(Preferences.IDENTITIES.toString(), new TreeSet<>())
                 .stream().map(UUID::fromString).collect(Collectors.toCollection(TreeSet::new));
     }
 
+    @Override
     public void deleteById(UUID id) {
         Set<String> identities = preferences.getStringSet(Preferences.IDENTITIES.toString(), new TreeSet<>());
         identities.remove(id.toString());

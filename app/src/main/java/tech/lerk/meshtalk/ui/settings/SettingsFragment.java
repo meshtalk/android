@@ -18,7 +18,7 @@ import tech.lerk.meshtalk.R;
 import tech.lerk.meshtalk.Stuff;
 import tech.lerk.meshtalk.entities.Preferences;
 import tech.lerk.meshtalk.providers.IdentityProvider;
-import tech.lerk.meshtalk.providers.KeyProvider;
+import tech.lerk.meshtalk.KeyHolder;
 
 import static tech.lerk.meshtalk.Stuff.waitOrDonT;
 
@@ -26,7 +26,7 @@ public class SettingsFragment extends PreferenceFragmentCompat {
 
     private static final String TAG = SettingsFragment.class.getCanonicalName();
     private int selfDestructClickCount = 0;
-    private KeyProvider keyProvider;
+    private KeyHolder keyHolder;
 
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
@@ -48,7 +48,7 @@ public class SettingsFragment extends PreferenceFragmentCompat {
             return true;
         });
 
-        keyProvider = KeyProvider.get(requireContext());
+        keyHolder = KeyHolder.get(requireContext());
     }
 
     private void selfDestruct(DialogInterface d) {
@@ -91,7 +91,7 @@ public class SettingsFragment extends PreferenceFragmentCompat {
                 progressBar.setProgress(40, true);
                 loadingTextView.setText(R.string.progress_self_destruct_deleting_app_key);
             });
-            keyProvider.deleteAppKey();
+            keyHolder.deleteAppKey();
             PreferenceManager.getDefaultSharedPreferences(requireContext().getApplicationContext())
                     .edit().putString(Preferences.DEVICE_IV.toString(), Stuff.NONE)
                     .putBoolean(Preferences.FIRST_START.toString(), true).apply();

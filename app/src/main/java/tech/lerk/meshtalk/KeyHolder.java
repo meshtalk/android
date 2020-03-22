@@ -1,4 +1,4 @@
-package tech.lerk.meshtalk.providers;
+package tech.lerk.meshtalk;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -22,16 +22,15 @@ import java.util.Objects;
 
 import javax.crypto.KeyGenerator;
 
-import tech.lerk.meshtalk.Stuff;
 import tech.lerk.meshtalk.entities.Preferences;
 
-public class KeyProvider {
-    private static final String TAG = KeyProvider.class.getCanonicalName();
+public class KeyHolder {
+    private static final String TAG = KeyHolder.class.getCanonicalName();
     private KeyStore keyStore;
-    private static KeyProvider instance = null;
+    private static KeyHolder instance = null;
     private final SharedPreferences preferences;
 
-    private KeyProvider(Context context) {
+    private KeyHolder(Context context) {
         preferences = PreferenceManager.getDefaultSharedPreferences(context.getApplicationContext());
         try {
             keyStore = KeyStore.getInstance(Stuff.KEY_STORE_TYPE);
@@ -41,9 +40,9 @@ public class KeyProvider {
         }
     }
 
-    public static KeyProvider get(Context context) {
+    public static KeyHolder get(Context context) {
         if (instance == null) {
-            instance = new KeyProvider(context);
+            instance = new KeyHolder(context);
         }
         return instance;
     }
