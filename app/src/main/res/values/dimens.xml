@@ -6,4 +6,6 @@
     <dimen name="nav_header_height">176dp</dimen>
     <dimen name="fab_margin">16dp</dimen>
     <dimen name="dialog_padding">16dp</dimen>
+    <dimen name="identicon_size">128dp</dimen>
+    <dimen name="list_identicon_size">64dp</dimen>
 </resources>

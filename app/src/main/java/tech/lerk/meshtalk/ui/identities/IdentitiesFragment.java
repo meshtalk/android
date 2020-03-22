@@ -1,48 +1,227 @@
 package tech.lerk.meshtalk.ui.identities;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
+import android.widget.ArrayAdapter;
+import android.widget.EditText;
+import android.widget.ImageButton;
+import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProviders;
+import androidx.preference.PreferenceManager;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.android.material.snackbar.Snackbar;
 
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.interfaces.RSAPublicKey;
+import java.util.ArrayList;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
+
+import im.delight.android.identicons.Identicon;
 import tech.lerk.meshtalk.R;
+import tech.lerk.meshtalk.Stuff;
+import tech.lerk.meshtalk.entities.Identity;
+import tech.lerk.meshtalk.entities.Preferences;
+import tech.lerk.meshtalk.exceptions.DecryptionException;
+import tech.lerk.meshtalk.exceptions.EncryptionException;
+import tech.lerk.meshtalk.providers.IdentityProvider;
 
 public class IdentitiesFragment extends Fragment {
 
+    private static final String TAG = IdentitiesFragment.class.getCanonicalName();
     private IdentitiesViewModel identitiesViewModel;
+    private IdentityProvider identityProvider;
+    private SharedPreferences preferences;
 
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         identitiesViewModel = ViewModelProviders.of(this).get(IdentitiesViewModel.class);
+        identityProvider = IdentityProvider.get(requireContext());
+        preferences = PreferenceManager.getDefaultSharedPreferences(requireContext().getApplicationContext());
 
-        View root = inflater.inflate(R.layout.fragment_contacts, container, false);
+        View root = inflater.inflate(R.layout.fragment_identities, container, false);
 
-        final TextView textView = root.findViewById(R.id.text_contacts);
-        identitiesViewModel.getText().observe(getViewLifecycleOwner(), new Observer<String>() {
-            @Override
-            public void onChanged(@Nullable String s) {
-                textView.setText(s);
+        final ListView listView = root.findViewById(R.id.identity_list_view);
+        identitiesViewModel.getIdentities().observe(getViewLifecycleOwner(), identities -> {
+            if(identities.size() > 0) {
+                root.findViewById(R.id.identity_list_empty).setVisibility(View.INVISIBLE);
+            } else {
+                root.findViewById(R.id.identity_list_empty).setVisibility(View.VISIBLE);
             }
-        });
+            ArrayAdapter<Identity> adapter = new ArrayAdapter<Identity>(requireContext(), R.layout.list_item_identity, new ArrayList<>(identities)) {
+                @NonNull
+                @Override
+                public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
+                    View v = null;
+                    if (convertView != null) {
+                        v = convertView;
+                    }
+                    if (v == null) {
+                        v = View.inflate(requireContext(), R.layout.list_item_identity, null);
+                    }
+                    Identicon identicon = v.findViewById(R.id.list_item_identity_identicon);
+                    TextView name = v.findViewById(R.id.list_item_identity_name_label);
+                    TextView publicKey = v.findViewById(R.id.list_item_identity_public_key_label);
+                    ImageButton defaultIdentityButton = v.findViewById(R.id.list_item_identity_default);
 
-        FloatingActionButton fab = root.findViewById(R.id.new_contact_button);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
+                    Identity identity = this.getItem(position);
+                    if (identity != null) {
+                        String defaultIdentity = preferences.getString(Preferences.DEFAULT_IDENTITY.toString(), "");
+                        if (defaultIdentity.equals(identity.getId().toString())) {
+                            defaultIdentityButton.setImageDrawable(requireContext().getDrawable(R.drawable.ic_star_black_48dp));
+                            defaultIdentityButton.setOnClickListener(v1 -> new AlertDialog.Builder(requireContext())
+                                    .setTitle(R.string.dialog_unset_default_identity_title)
+                                    .setMessage(R.string.dialog_unset_default_identity_message)
+                                    .setPositiveButton(R.string.action_yes, (d, w) -> handleUnsetDefault(d))
+                                    .setNegativeButton(R.string.action_no, (d, w) -> d.dismiss())
+                                    .create().show());
+                        } else {
+                            defaultIdentityButton.setOnClickListener(v1 -> new AlertDialog.Builder(requireContext())
+                                    .setTitle(R.string.dialog_set_default_identity_title)
+                                    .setMessage(R.string.dialog_set_default_identity_message)
+                                    .setPositiveButton(R.string.action_yes, (d, w) -> handleSetDefault(d, identity.getId()))
+                                    .setNegativeButton(R.string.action_no, (d, w) -> d.dismiss())
+                                    .create().show());
+                        }
+                        identicon.show(identity.getId().toString() + identity.getName());
+                        name.setText(identity.getName());
+                        publicKey.setText(Stuff.getFingerprintForKey((RSAPublicKey) identity.getPublicKey()));
+                    }
+                    return v;
+                }
+            };
+            listView.setAdapter(adapter);
         });
+        updateIdentities();
+
+        FloatingActionButton fab = root.findViewById(R.id.new_identity_button);
+        fab.setOnClickListener(view -> handleActionButtonClick());
 
         return root;
+    }
+
+    private void handleUnsetDefault(DialogInterface d) {
+        d.dismiss();
+        preferences.edit().putString(Preferences.DEFAULT_IDENTITY.toString(), "").apply();
+        updateIdentities();
+    }
+
+    private void handleSetDefault(DialogInterface d, UUID id) {
+        d.dismiss();
+        preferences.edit().putString(Preferences.DEFAULT_IDENTITY.toString(), id.toString()).apply();
+        updateIdentities();
+    }
+
+    private void updateIdentities() {
+        Set<Identity> identities = new TreeSet<>();
+        identityProvider.getAllIds().forEach(id -> {
+            try {
+                identities.add(identityProvider.getById(id));
+            } catch (DecryptionException e) {
+                String msg = "Unable to decrypt identity: '" + id + "'!";
+                Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show();
+                Log.e(TAG, msg, e);
+            }
+        });
+        identitiesViewModel.setIdentities(identities);
+    }
+
+    private void handleActionButtonClick() {
+        UUID newUUID = UUID.randomUUID();
+        AlertDialog newIdentityDialog = new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.dialog_new_identity_title)
+                .setView(R.layout.dialog_new_identity)
+                .setPositiveButton(R.string.action_save, (d, w) -> handleSave(d, newUUID))
+                .setNegativeButton(R.string.action_cancel, (d, w) -> d.dismiss())
+                .create();
+        newIdentityDialog.show();
+        Identicon identicon = newIdentityDialog.findViewById(R.id.dialog_new_identity_identicon);
+        EditText identityName = newIdentityDialog.findViewById(R.id.dialog_new_identity_identity_name);
+        identityName.setImeOptions(EditorInfo.IME_ACTION_DONE);
+        identityName.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                identicon.show(newUUID.toString() + s);
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+
+            }
+        });
+        identicon.show(newUUID.toString() + identityName.getText().toString());
+    }
+
+    private void handleSave(DialogInterface d, UUID id) {
+        String identityName = ((EditText) ((AlertDialog) d).findViewById(R.id.dialog_new_identity_identity_name)).getText().toString();
+        d.dismiss();
+        AtomicReference<AlertDialog> loadingDialog = new AtomicReference<>();
+        requireActivity().runOnUiThread(() -> {
+            loadingDialog.set(new AlertDialog.Builder(requireContext())
+                    .setView(R.layout.dialog_loading)
+                    .setTitle(R.string.dialog_saving_title)
+                    .setCancelable(false).create());
+            loadingDialog.get().show();
+            TextView loadingText = loadingDialog.get().findViewById(R.id.loading_text);
+            loadingText.setText(R.string.dialog_saving_creating_identity);
+        });
+        Stuff.waitOrDonT(200);
+        try {
+            Identity newIdentity = new Identity();
+            newIdentity.setId(id);
+            newIdentity.setName(identityName);
+            newIdentity.setChats(new ArrayList<>());
+
+            requireActivity().runOnUiThread(() -> {
+                TextView loadingText = loadingDialog.get().findViewById(R.id.loading_text);
+                loadingText.setText(R.string.dialog_saving_generating_keys);
+            });
+            Stuff.waitOrDonT(200);
+
+            KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+            keyGen.initialize(4096);
+            KeyPair keyPair = keyGen.genKeyPair();
+
+            requireActivity().runOnUiThread(() -> {
+                TextView loadingText = loadingDialog.get().findViewById(R.id.loading_text);
+                loadingText.setText(R.string.dialog_saving_saving_identity);
+            });
+            Stuff.waitOrDonT(200);
+
+            newIdentity.setPrivateKey(keyPair.getPrivate());
+            newIdentity.setPublicKey(keyPair.getPublic());
+            IdentityProvider.get(requireContext()).save(newIdentity);
+
+            requireActivity().runOnUiThread(() -> {
+                loadingDialog.get().dismiss();
+                updateIdentities();
+            });
+        } catch (NoSuchAlgorithmException | EncryptionException e) {
+            requireActivity().runOnUiThread(() -> loadingDialog.get().dismiss());
+            Log.e(TAG, "Unable to create new identity!", e);
+        }
     }
 }

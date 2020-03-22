@@ -1,14 +1,20 @@
 package tech.lerk.meshtalk.entities;
 
-import java.security.interfaces.RSAPublicKey;
-import java.util.List;
+import java.security.PublicKey;
 import java.util.UUID;
 
 public class Contact {
     private UUID id;
     private String name;
-    private RSAPublicKey publicKey;
-    private List<UUID> chats;
+    private PublicKey publicKey;
+
+    public UUID getId() {
+        return id;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
+    }
 
     public String getName() {
         return name;
@@ -18,19 +24,11 @@ public class Contact {
         this.name = name;
     }
 
-    public RSAPublicKey getPublicKey() {
+    public PublicKey getPublicKey() {
         return publicKey;
     }
 
-    public void setPublicKey(RSAPublicKey publicKey) {
+    public void setPublicKey(PublicKey publicKey) {
         this.publicKey = publicKey;
-    }
-
-    public List<UUID> getChats() {
-        return chats;
-    }
-
-    public void setChats(List<UUID> chats) {
-        this.chats = chats;
     }
 }

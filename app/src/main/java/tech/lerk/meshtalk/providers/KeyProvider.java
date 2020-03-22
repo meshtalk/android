@@ -1,10 +1,15 @@
 package tech.lerk.meshtalk.providers;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
 import android.util.Log;
 
+import androidx.preference.PreferenceManager;
+
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.Key;
 import java.security.KeyStore;
@@ -13,17 +18,21 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
+import java.util.Objects;
 
 import javax.crypto.KeyGenerator;
 
 import tech.lerk.meshtalk.Stuff;
+import tech.lerk.meshtalk.entities.Preferences;
 
 public class KeyProvider {
     private static final String TAG = KeyProvider.class.getCanonicalName();
     private KeyStore keyStore;
     private static KeyProvider instance = null;
+    private final SharedPreferences preferences;
 
-    private KeyProvider() {
+    private KeyProvider(Context context) {
+        preferences = PreferenceManager.getDefaultSharedPreferences(context.getApplicationContext());
         try {
             keyStore = KeyStore.getInstance(Stuff.KEY_STORE_TYPE);
             keyStore.load(null);
@@ -32,9 +41,9 @@ public class KeyProvider {
         }
     }
 
-    public static KeyProvider get() {
+    public static KeyProvider get(Context context) {
         if (instance == null) {
-            instance = new KeyProvider();
+            instance = new KeyProvider(context);
         }
         return instance;
     }
@@ -63,8 +72,13 @@ public class KeyProvider {
         }
     }
 
-    public Key getAppKey() throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException {
-        return keyStore.getKey(Stuff.APP_KEY_ALIAS, null);
+    public Key getAppKey() {
+        try {
+            return keyStore.getKey(Stuff.APP_KEY_ALIAS, null);
+        } catch (KeyStoreException | NoSuchAlgorithmException | UnrecoverableKeyException e) {
+            Log.wtf(TAG, "Unable to get app key!", e);
+            return null;
+        }
     }
 
     public void deleteAppKey() {
@@ -73,5 +87,13 @@ public class KeyProvider {
         } catch (KeyStoreException e) {
             Log.wtf(TAG, "Unable to delete app key!", e);
         }
+    }
+
+    public byte[] getDeviceIV() {
+        String encodedIV = preferences.getString(Preferences.DEVICE_IV.toString(), null);
+        byte[] deviceIV = Objects.requireNonNull(encodedIV).getBytes(StandardCharsets.UTF_8);
+        byte[] reducedIV = new byte[12];
+        System.arraycopy(deviceIV, 0, reducedIV, 0, reducedIV.length);
+        return reducedIV;
     }
 }

@@ -1,15 +1,31 @@
 package tech.lerk.meshtalk.entities;
 
-import java.security.interfaces.RSAPrivateKey;
+import java.security.PrivateKey;
+import java.util.List;
+import java.util.UUID;
 
-public class Identity extends Contact {
-    private RSAPrivateKey privateKey;
+public class Identity extends Contact implements Comparable<Identity> {
+    private PrivateKey privateKey;
+    private List<UUID> chats;
 
-    public RSAPrivateKey getPrivateKey() {
+    public PrivateKey getPrivateKey() {
         return privateKey;
     }
 
-    public void setPrivateKey(RSAPrivateKey privateKey) {
+    public void setPrivateKey(PrivateKey privateKey) {
         this.privateKey = privateKey;
+    }
+
+    public List<UUID> getChats() {
+        return chats;
+    }
+
+    public void setChats(List<UUID> chats) {
+        this.chats = chats;
+    }
+
+    @Override
+    public int compareTo(Identity o) {
+        return getId().compareTo(o.getId());
     }
 }

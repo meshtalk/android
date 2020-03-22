@@ -1,0 +1,48 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="96dp"
+    android:padding="@dimen/dialog_padding">
+
+    <im.delight.android.identicons.SymmetricIdenticon
+        android:id="@+id/list_item_identity_identicon"
+        android:layout_width="@dimen/list_identicon_size"
+        android:layout_height="@dimen/list_identicon_size"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true" />
+
+    <TextView
+        android:id="@+id/list_item_identity_name_label"
+        android:layout_width="180dp"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_marginStart="8dp"
+        android:textColor="@android:color/primary_text_light"
+        android:layout_toEndOf="@id/list_item_identity_identicon"
+        android:text="@string/list_item_identity_name_label" />
+
+    <TextView
+        android:id="@+id/list_item_identity_public_key_label"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/list_item_identity_name_label"
+        android:layout_marginTop="8dp"
+        android:layout_marginStart="8dp"
+        android:textColor="@android:color/secondary_text_light"
+        android:layout_toEndOf="@id/list_item_identity_identicon"
+        android:lines="2"
+        android:text="@string/list_item_identity_public_key_label" />
+
+    <ImageButton
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/list_item_identity_default"
+        android:src="@drawable/ic_star_border_black_48dp"
+        android:background="#00000000"
+        android:tint="@color/golden"
+        android:layout_alignParentEnd="true"
+        android:layout_centerVertical="true"
+        android:contentDescription="@string/list_item_identity_default_hint" />
+
+</RelativeLayout>

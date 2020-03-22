@@ -35,4 +35,25 @@
     <string name="progress_self_destruct_finished">Self Destruct Finished!</string>
     <string name="progress_self_destruct_finished_message">Self destruct has finished. The app will now quit and go through initial setup again when it\'s started again.</string>
     <string name="action_okay">Okay</string>
+    <string name="progress_init_generating_identity">Generating Identity…</string>
+    <string name="progress_init_generating_iv">Generating Device IV…</string>
+    <string name="dialog_new_identity_intro_text">Fill out the form below to create a new identity.</string>
+    <string name="dialog_new_identity_identity_name">Identity Name</string>
+    <string name="dialog_new_identity_name_label">Name</string>
+    <string name="dialog_new_identity_save">Save</string>
+    <string name="dialog_new_identity_title">New Identity…</string>
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="dialog_saving_title">Saving…</string>
+    <string name="dialog_saving_saving_identity">Saving Identity..</string>
+    <string name="dialog_saving_generating_keys">Generating Keys…</string>
+    <string name="dialog_saving_creating_identity">Creating Identity…</string>
+    <string name="list_item_identity_name_label">Name</string>
+    <string name="list_item_identity_public_key_label">00:00:00:00:00:00:00</string>
+    <string name="list_item_identity_default_hint">Selecting this determines the default identity.</string>
+    <string name="dialog_set_default_identity_title">Set Default?</string>
+    <string name="dialog_set_default_identity_message">Do you want to use this identity as default?</string>
+    <string name="dialog_unset_default_identity_title">Remove Default?</string>
+    <string name="dialog_unset_default_identity_message">Do you want to remove this as the default identity?</string>
+    <string name="identity_list_empty">No Identities...</string>
 </resources>

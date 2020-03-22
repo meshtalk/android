@@ -7,5 +7,4 @@ public class Chat {
     private UUID id;
     private String title;
     private List<UUID> messages;
-    private List<UUID> participants;
 }

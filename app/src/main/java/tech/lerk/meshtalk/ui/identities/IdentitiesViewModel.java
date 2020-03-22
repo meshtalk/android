@@ -4,16 +4,23 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
+import java.util.Set;
+
+import tech.lerk.meshtalk.entities.Identity;
+
 public class IdentitiesViewModel extends ViewModel {
 
-    private MutableLiveData<String> mText;
+    private MutableLiveData<Set<Identity>> identities;
 
     public IdentitiesViewModel() {
-        mText = new MutableLiveData<>();
-        mText.setValue("TODO: Add identity list");
+        identities = new MutableLiveData<>();
     }
 
-    public LiveData<String> getText() {
-        return mText;
+    public LiveData<Set<Identity>> getIdentities() {
+        return identities;
+    }
+
+    public void setIdentities(Set<Identity> identities) {
+        this.identities.setValue(identities);
     }
 }
