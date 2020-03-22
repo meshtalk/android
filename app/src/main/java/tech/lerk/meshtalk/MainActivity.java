@@ -3,6 +3,7 @@ package tech.lerk.meshtalk;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -21,9 +22,15 @@ import com.google.android.material.navigation.NavigationView;
 
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.security.interfaces.RSAPublicKey;
 import java.util.Objects;
+import java.util.UUID;
 
+import im.delight.android.identicons.Identicon;
+import tech.lerk.meshtalk.entities.Identity;
 import tech.lerk.meshtalk.entities.Preferences;
+import tech.lerk.meshtalk.exceptions.DecryptionException;
+import tech.lerk.meshtalk.providers.IdentityProvider;
 
 import static tech.lerk.meshtalk.Stuff.waitOrDonT;
 
@@ -33,6 +40,8 @@ public class MainActivity extends AppCompatActivity {
     private AppBarConfiguration mAppBarConfiguration;
     private SharedPreferences preferences;
     private KeyHolder keyHolder;
+    private NavController navController;
+    private NavigationView navigationView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,14 +50,14 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
-        NavigationView navigationView = findViewById(R.id.nav_view);
+        navigationView = findViewById(R.id.nav_view);
         // Passing each menu ID as a set of Ids because each
         // menu should be considered as top level destinations.
         mAppBarConfiguration = new AppBarConfiguration.Builder(
                 R.id.nav_item_chats, R.id.nav_item_contacts, R.id.nav_item_settings)
                 .setDrawerLayout(drawer)
                 .build();
-        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment);
+        navController = Navigation.findNavController(this, R.id.nav_host_fragment);
         NavigationUI.setupActionBarWithNavController(this, navController, mAppBarConfiguration);
         NavigationUI.setupWithNavController(navigationView, navController);
 
@@ -57,6 +66,40 @@ public class MainActivity extends AppCompatActivity {
         boolean firstStart = preferences.getBoolean(Preferences.FIRST_START.toString(), true);
         if (firstStart) {
             handleFirstStart();
+        } else {
+            handleNoIdentities();
+        }
+    }
+
+    public void updateNavHeader() {
+        String defaultIdentityId = preferences.getString(Preferences.DEFAULT_IDENTITY.toString(), "");
+        try {
+            Identity defaultIdentity = null;
+            if (!defaultIdentityId.equals("")) {
+                defaultIdentity = IdentityProvider.get(this).getById(UUID.fromString(defaultIdentityId));
+            }
+            Identicon identicon = navigationView.getHeaderView(0).findViewById(R.id.nav_header_identicon);
+            TextView name = navigationView.getHeaderView(0).findViewById(R.id.nav_header_title);
+            TextView publicKey = navigationView.getHeaderView(0).findViewById(R.id.nav_header_subtitle);
+            if (defaultIdentity != null) {
+                identicon.show(defaultIdentity.getId());
+                name.setText(defaultIdentity.getName());
+                publicKey.setText(Stuff.getFingerprintForKey((RSAPublicKey) defaultIdentity.getPublicKey()));
+            } else {
+                identicon.show("");
+                name.setText(R.string.nav_header_title);
+                publicKey.setText(R.string.nav_header_subtitle);
+            }
+        } catch (DecryptionException e) {
+            Log.w(TAG, "Error getting default identity!", e);
+        }
+    }
+
+    private void handleNoIdentities() {
+        if (IdentityProvider.get(getApplicationContext()).getAllIds().size() < 1) {
+            navController.navigate(R.id.nav_item_identities);
+        } else {
+            updateNavHeader();
         }
     }
 
@@ -104,7 +147,10 @@ public class MainActivity extends AppCompatActivity {
             });
             waitOrDonT(200);
             preferences.edit().putBoolean(Preferences.FIRST_START.toString(), false).apply();
-            MainActivity.this.runOnUiThread(loadingDialog::dismiss);
+            MainActivity.this.runOnUiThread(() -> {
+                loadingDialog.dismiss();
+                handleNoIdentities();
+            });
         });
     }
 
@@ -120,5 +166,9 @@ public class MainActivity extends AppCompatActivity {
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment);
         return NavigationUI.navigateUp(navController, mAppBarConfiguration)
                 || super.onSupportNavigateUp();
+    }
+
+    public NavController getNavController() {
+        return navController;
     }
 }

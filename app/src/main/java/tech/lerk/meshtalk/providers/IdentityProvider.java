@@ -3,11 +3,13 @@ package tech.lerk.meshtalk.providers;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Base64;
+import android.util.Log;
 
 import androidx.preference.PreferenceManager;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonSyntaxException;
 
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
@@ -36,6 +38,7 @@ import tech.lerk.meshtalk.exceptions.DecryptionException;
 import tech.lerk.meshtalk.exceptions.EncryptionException;
 
 public class IdentityProvider implements Provider<Identity> {
+    private static final String TAG = IdentityProvider.class.getCanonicalName();
     private static IdentityProvider instance = null;
     private final KeyHolder keyHolder;
     private final SharedPreferences preferences;
@@ -66,7 +69,12 @@ public class IdentityProvider implements Provider<Identity> {
             c.init(Cipher.DECRYPT_MODE, keyHolder.getAppKey(), new GCMParameterSpec(128, keyHolder.getDeviceIV()));
             byte[] decodedBytes = c.doFinal(Base64.decode(encryptedIdentity, Base64.DEFAULT));
             String decryptedJson = new String(decodedBytes, StandardCharsets.UTF_8);
-            return gson.fromJson(decryptedJson, Identity.class);
+            try {
+                return gson.fromJson(decryptedJson, Identity.class);
+            } catch (JsonSyntaxException e) {
+                Log.w(TAG, "Unable to parse identity!", e);
+                return null;
+            }
         } catch (NoSuchAlgorithmException | NoSuchPaddingException |
                 InvalidAlgorithmParameterException | InvalidKeyException |
                 IllegalBlockSizeException | BadPaddingException e) {

@@ -43,6 +43,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 import im.delight.android.identicons.Identicon;
+import tech.lerk.meshtalk.MainActivity;
 import tech.lerk.meshtalk.R;
 import tech.lerk.meshtalk.Stuff;
 import tech.lerk.meshtalk.entities.Identity;
@@ -69,6 +70,7 @@ public class IdentitiesFragment extends Fragment {
         identitiesViewModel.getIdentities().observe(getViewLifecycleOwner(), identities -> {
             if (identities.size() > 0) {
                 root.findViewById(R.id.identity_list_empty).setVisibility(View.INVISIBLE);
+                ((MainActivity) requireActivity()).updateNavHeader();
             } else {
                 root.findViewById(R.id.identity_list_empty).setVisibility(View.VISIBLE);
             }
@@ -152,6 +154,17 @@ public class IdentitiesFragment extends Fragment {
         FloatingActionButton fab = root.findViewById(R.id.new_identity_button);
         fab.setOnClickListener(view -> handleActionButtonClick());
 
+        if (IdentityProvider.get(requireContext()).getAllIds().size() < 1) {
+            new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                    .setTitle(R.string.dialog_no_identities_title)
+                    .setMessage(R.string.dialog_no_identities_message)
+                    .setNegativeButton(R.string.action_no, (d, w) -> d.dismiss())
+                    .setPositiveButton(R.string.action_yes, (d, w) -> {
+                        d.dismiss();
+                        handleActionButtonClick();
+                    }).create().show();
+        }
+
         return root;
     }
 
@@ -181,7 +194,7 @@ public class IdentitiesFragment extends Fragment {
         identitiesViewModel.setIdentities(identities);
     }
 
-    private void handleActionButtonClick() {
+    public void handleActionButtonClick() {
         UUID newUUID = UUID.randomUUID();
         AlertDialog newIdentityDialog = new AlertDialog.Builder(requireContext())
                 .setTitle(R.string.dialog_new_identity_title)

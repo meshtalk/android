@@ -92,6 +92,8 @@ public class SettingsFragment extends PreferenceFragmentCompat {
             });
             IdentityProvider identityProvider = IdentityProvider.get(requireContext());
             identityProvider.getAllIds().forEach(identityProvider::deleteById);
+            PreferenceManager.getDefaultSharedPreferences(requireContext().getApplicationContext())
+                    .edit().remove(Preferences.DEFAULT_IDENTITY.toString()).apply();
             waitOrDonT(200);
             requireActivity().runOnUiThread(() -> {
                 progressBar.setProgress(40, true);

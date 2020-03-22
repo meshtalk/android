@@ -32,12 +32,14 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 import im.delight.android.identicons.Identicon;
+import tech.lerk.meshtalk.MainActivity;
 import tech.lerk.meshtalk.R;
 import tech.lerk.meshtalk.Stuff;
 import tech.lerk.meshtalk.entities.Chat;
@@ -119,7 +121,8 @@ public class ContactsFragment extends Fragment {
         chat.setRecipient(recipient.getId());
         chat.setTitle("Chat with " + recipient.getName());
         ChatProvider.get(requireContext()).save(chat);
-        //TODO: navigate to newly created chat
+        ((MainActivity) Objects.requireNonNull(getActivity())).getNavController()
+                .navigate(R.id.nav_item_chats);
     }
 
     private void handleActionButtonClick() {
