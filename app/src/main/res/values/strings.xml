@@ -7,30 +7,32 @@
     <string name="nav_header_desc">Navigation header</string>
     <string name="action_settings">Settings</string>
 
-    <string name="menu_home">Home</string>
-    <string name="menu_gallery">Gallery</string>
-    <string name="menu_slideshow">Slideshow</string>
-
-    <string name="home_second">Home Second</string>
     <string name="menu_chats">Chats</string>
     <string name="menu_contacts">Contacts</string>
     <string name="menu_settings">Settings</string>
     <string name="menu_conversation">Conversation</string>
     <string name="title_activity_settings">Settings</string>
 
-    <!-- Preference Titles -->
-    <string name="messages_header">Messages</string>
-    <string name="sync_header">Sync</string>
-
-    <!-- Messages Preferences -->
-    <string name="signature_title">Your signature</string>
-    <string name="reply_title">Default reply action</string>
-
-    <!-- Sync Preferences -->
-    <string name="sync_title">Sync email periodically</string>
-    <string name="attachment_title">Download incoming attachments</string>
-    <string name="attachment_summary_on">Automatically download attachments for incoming emails
-    </string>
-    <string name="attachment_summary_off">Only download attachments when manually requested</string>
     <string name="menu_identities">Identities</string>
+    <string name="pref_category_general">General</string>
+    <string name="first_start_dialog_title">First Time Setup…</string>
+    <string name="loading">Loading…</string>
+    <string name="progress_init_loading_keystore">Loading Keystore…</string>
+    <string name="progress_init_generating_app_key">Generating App Key…</string>
+    <string name="progress_init_finishing">Finishing…</string>
+    <string name="pref_category_security">Security</string>
+    <string name="pref_title_self_destruct">Self Destruct…</string>
+    <string name="pref_summary_self_destruct">Select this to wipe all the settings, identities and messages from this device.</string>
+    <string name="pref_dialog_self_destruct">This will delete all the messages, identities and settings from this device and generate a new app key. Are you sure you want to continue?</string>
+    <string name="action_yes">Yes!</string>
+    <string name="action_no">No</string>
+    <string name="toast_self_destruct">Press again to self destruct…</string>
+    <string name="progress_self_destruct_deleting_contacts">Deleting Contacts…</string>
+    <string name="progress_self_destruct_deleting_app_key">Deleting App Key…</string>
+    <string name="progress_self_destruct_deleting_messages">Deleting Messages…</string>
+    <string name="progress_self_destruct_deleting_chats">Deleting Chats…</string>
+    <string name="progress_self_destruct_deleting_identities">Deleting Identities…</string>
+    <string name="progress_self_destruct_finished">Self Destruct Finished!</string>
+    <string name="progress_self_destruct_finished_message">Self destruct has finished. The app will now quit and go through initial setup again when it\'s started again.</string>
+    <string name="action_okay">Okay</string>
 </resources>
