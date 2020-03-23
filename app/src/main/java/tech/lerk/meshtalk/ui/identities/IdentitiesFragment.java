@@ -6,6 +6,7 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.text.Editable;
@@ -19,6 +20,7 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -31,6 +33,9 @@ import androidx.preference.PreferenceManager;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import net.glxn.qrgen.android.QRCode;
+
+import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
@@ -50,6 +55,7 @@ import tech.lerk.meshtalk.entities.Identity;
 import tech.lerk.meshtalk.entities.Preferences;
 import tech.lerk.meshtalk.exceptions.DecryptionException;
 import tech.lerk.meshtalk.exceptions.EncryptionException;
+import tech.lerk.meshtalk.providers.ContactProvider;
 import tech.lerk.meshtalk.providers.IdentityProvider;
 
 public class IdentitiesFragment extends Fragment {
@@ -58,10 +64,12 @@ public class IdentitiesFragment extends Fragment {
     private IdentitiesViewModel identitiesViewModel;
     private IdentityProvider identityProvider;
     private SharedPreferences preferences;
+    private ContactProvider contactProvider;
 
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         identitiesViewModel = ViewModelProviders.of(this).get(IdentitiesViewModel.class);
         identityProvider = IdentityProvider.get(requireContext());
+        contactProvider = ContactProvider.get(requireContext());
         preferences = PreferenceManager.getDefaultSharedPreferences(requireContext().getApplicationContext());
 
         View root = inflater.inflate(R.layout.fragment_identities, container, false);
@@ -93,30 +101,33 @@ public class IdentitiesFragment extends Fragment {
                     Identity identity = this.getItem(position);
                     if (identity != null) {
                         v.setOnLongClickListener(v12 -> {
-
                             new AlertDialog.Builder(requireContext())
                                     .setMessage(R.string.dialog_identity_copy_message)
-                                    .setPositiveButton(R.string.action_copy_public_key, (d, w) -> {
-                                        ClipboardManager clipboard = Objects.requireNonNull((ClipboardManager)
-                                                requireContext().getSystemService(Context.CLIPBOARD_SERVICE));
-                                        String clipboardLabel = getString(R.string.action_copy_public_key_pre) + identity.getName();
-                                        String encodedKey = Base64.encodeToString(identity.getPublicKey().getEncoded(), Base64.DEFAULT);
-                                        ClipData clip = ClipData.newPlainText(clipboardLabel, encodedKey);
-                                        clipboard.setPrimaryClip(clip);
+                                    .setPositiveButton(R.string.action_show_qr_code, (d, w) -> {
                                         d.dismiss();
-                                        String toastMessage = getString(R.string.action_copy_public_key_pre) +
-                                                identity.getName() + getString(R.string.action_copy_public_key_post);
-                                        Toast.makeText(requireContext(), toastMessage, Toast.LENGTH_LONG).show();
+                                        AlertDialog qrDialog = new AlertDialog.Builder(requireContext())
+                                                .setPositiveButton(R.string.action_okay, (d1, w1) -> d1.dismiss())
+                                                .setView(R.layout.dialog_qr_code)
+                                                .setTitle(R.string.dialog_qr_code_title)
+                                                .create();
+                                        qrDialog.show();
+                                        ImageView qrCodeView = qrDialog.findViewById(R.id.dialog_qr_code_image);
+                                        String asShareableJSON = contactProvider.getAsShareableJSON(identity);
+                                        qrCodeView.setImageBitmap(QRCode.from(asShareableJSON)
+                                                .withSize(qrCodeView.getWidth(), qrCodeView.getHeight()).bitmap());
                                     })
-                                    .setNeutralButton(R.string.action_copy_uuid, (d, w) -> {
+                                    .setNeutralButton(R.string.action_copy_contact_info, (d, w) -> {
                                         ClipboardManager clipboard = Objects.requireNonNull((ClipboardManager)
                                                 requireContext().getSystemService(Context.CLIPBOARD_SERVICE));
-                                        String clipboardLabel = getString(R.string.action_copy_uuid_pre) + identity.getName();
-                                        ClipData clip = ClipData.newPlainText(clipboardLabel, identity.getId().toString());
+                                        String clipboardLabel = getString(R.string.action_copy_details_pre) + identity.getName();
+                                        String encodedPK = Base64.encodeToString(identity.getPublicKey().getEncoded(), Base64.DEFAULT);
+                                        String clipboardText = "ID: '" + identity.getId().toString() +
+                                                "'. Public Key: '" + encodedPK;
+                                        ClipData clip = ClipData.newPlainText(clipboardLabel, clipboardText);
                                         clipboard.setPrimaryClip(clip);
                                         d.dismiss();
-                                        String toastMessage = getString(R.string.action_copy_uuid_pre) +
-                                                identity.getName() + getString(R.string.action_copy_uuid_post);
+                                        String toastMessage = getString(R.string.action_copy_details_pre) +
+                                                identity.getName() + getString(R.string.action_copy_details_post);
                                         Toast.makeText(requireContext(), toastMessage, Toast.LENGTH_LONG).show();
                                     })
                                     .setNegativeButton(R.string.action_cancel, (d, w) -> d.dismiss())

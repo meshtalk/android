@@ -45,6 +45,18 @@ public class ContactProvider implements Provider<Contact> {
         return instance;
     }
 
+    public String getAsShareableJSON(UUID id) {
+        return getAsShareableJSON(getById(id));
+    }
+
+    public String getAsShareableJSON(Contact contact) {
+        Contact c = new Contact();
+        c.setName(contact.getName());
+        c.setPublicKey(contact.getPublicKey());
+        c.setId(contact.getId());
+        return gson.toJson(c);
+    }
+
     @Override
     public Contact getById(UUID id) {
         String contactJson = preferences.getString(contactsPrefix + id.toString(), Stuff.EMPTY_OBJECT);

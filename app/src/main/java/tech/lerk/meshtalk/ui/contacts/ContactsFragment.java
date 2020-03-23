@@ -2,6 +2,7 @@ package tech.lerk.meshtalk.ui.contacts;
 
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -40,6 +41,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import im.delight.android.identicons.Identicon;
 import tech.lerk.meshtalk.MainActivity;
+import tech.lerk.meshtalk.QRCodeScanActivity;
 import tech.lerk.meshtalk.R;
 import tech.lerk.meshtalk.Stuff;
 import tech.lerk.meshtalk.entities.Chat;
@@ -138,6 +140,7 @@ public class ContactsFragment extends Fragment {
 
     private void handleScanQR(DialogInterface d) {
         d.dismiss();
+        requireActivity().startActivity(new Intent(requireContext().getApplicationContext(), QRCodeScanActivity.class));
     }
 
     private void handleAddManually(DialogInterface d) {

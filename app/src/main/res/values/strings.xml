@@ -76,7 +76,7 @@
     <string name="dialog_error_title">Error!</string>
     <string name="dialog_saving_saving_contact">Saving Contact…</string>
     <string name="dialog_new_contact_error_message">There was an error saving the contact. Make sure that you didn\'t paste in any newlines or spaces.</string>
-    <string name="dialog_identity_copy_message">What do you want to copy?</string>
+    <string name="dialog_identity_copy_message">To share your contact details, you can either show a QR Code to scan with another app (or screenshot and share) or you can copy the contact details to the clipboard as plain text.</string>
     <string name="action_copy_public_key">Copy Public Key</string>
     <string name="action_copy_uuid">Copy UUID</string>
     <string name="action_copy_uuid_pre">"UUID for "</string>
@@ -91,4 +91,12 @@
     <string name="list_item_chat_latest_message_label">Hello World!</string>
     <string name="no_messages">No Messages...</string>
     <string name="error_no_chat_selected">No Chat Selected!</string>
+    <string name="action_copy_contact_info">Copy Info</string>
+    <string name="action_show_qr_code">Show QR</string>
+    <string name="action_copy_details_pre">"Details for "</string>
+    <string name="action_copy_details_post">were copied to clipboard!</string>
+    <string name="dialog_qr_code_message">You can either screenshot this dialog or let someone scan your phone to share your contact details.</string>
+    <string name="dialog_qr_code_image_description">QR Code that can be shared.</string>
+    <string name="dialog_qr_code_title">Share Contact...</string>
+    <string name="error_no_camera_permission">Error! No Permission to use camera!</string>
 </resources>

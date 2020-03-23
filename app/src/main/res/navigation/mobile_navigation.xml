@@ -34,4 +34,5 @@
         android:id="@+id/nav_item_settings"
         android:name="tech.lerk.meshtalk.ui.settings.SettingsFragment"
         android:label="@string/menu_settings" />
+
 </navigation>
