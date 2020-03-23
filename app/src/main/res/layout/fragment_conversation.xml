@@ -8,8 +8,27 @@
     <com.stfalcon.chatkit.messages.MessagesList
         android:id="@+id/message_list_view"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentTop="true" />
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true" />
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp">
+
+        <EditText
+            android:id="@+id/message_edit_text"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:autofillHints="text"
+            android:hint="@string/hint_message"
+            android:inputType="text|textLongMessage|textShortMessage"
+            android:maxLines="10" />
+
+    </RelativeLayout>
 
 </RelativeLayout>

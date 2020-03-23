@@ -9,6 +9,7 @@ public class Chat implements Comparable<Chat> {
     private UUID recipient;
     private UUID sender;
     private Set<UUID> messages;
+    private Handshake handshake;
 
     public UUID getId() {
         return id;
@@ -53,5 +54,25 @@ public class Chat implements Comparable<Chat> {
 
     public void setSender(UUID sender) {
         this.sender = sender;
+    }
+
+    public Handshake getHandshake() {
+        return handshake;
+    }
+
+    public void setHandshake(Handshake handshake) {
+        this.handshake = handshake;
+    }
+
+    public static class Handshake extends Message {
+        private String key;
+
+        public String getKey() {
+            return key;
+        }
+
+        public void setKey(String key) {
+            this.key = key;
+        }
     }
 }

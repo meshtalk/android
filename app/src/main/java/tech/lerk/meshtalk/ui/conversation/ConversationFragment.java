@@ -4,6 +4,8 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -56,6 +58,18 @@ public class ConversationFragment extends Fragment {
                     currentChat.getSender().toString(),
                     new UserDO.IdenticonImageLoader(requireContext()));
             ((MessagesList) root.findViewById(R.id.message_list_view)).setAdapter(adapter);
+        });
+
+        EditText messageET = root.findViewById(R.id.message_edit_text);
+        messageET.setImeOptions(EditorInfo.IME_ACTION_SEND);
+        messageET.setInputType(EditorInfo.TYPE_TEXT_FLAG_MULTI_LINE);
+        messageET.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_SEND) {
+                //TODO: implement sending...
+                Toast.makeText(requireContext(), "TODO: implement sending...", Toast.LENGTH_LONG).show();
+                messageET.setText("");
+            }
+            return false;
         });
 
         updateMessages();
