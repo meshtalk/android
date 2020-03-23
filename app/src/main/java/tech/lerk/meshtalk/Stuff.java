@@ -1,5 +1,6 @@
 package tech.lerk.meshtalk;
 
+import android.content.Context;
 import android.util.Base64;
 import android.util.Log;
 
@@ -9,6 +10,14 @@ import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPublicKey;
+import java.util.UUID;
+
+import tech.lerk.meshtalk.entities.Contact;
+import tech.lerk.meshtalk.entities.Identity;
+import tech.lerk.meshtalk.entities.ui.UserDO;
+import tech.lerk.meshtalk.exceptions.DecryptionException;
+import tech.lerk.meshtalk.providers.ContactProvider;
+import tech.lerk.meshtalk.providers.IdentityProvider;
 
 public class Stuff {
     private static final String TAG = Stuff.class.getCanonicalName();
@@ -51,5 +60,23 @@ public class Stuff {
         byte[] reducedIV = new byte[12];
         System.arraycopy(deviceIV, 0, reducedIV, 0, reducedIV.length);
         return reducedIV;
+    }
+
+    public static UserDO getUserDO(UUID uuid, Context context) {
+        ContactProvider contactProvider = ContactProvider.get(context);
+        IdentityProvider identityProvider = IdentityProvider.get(context);
+        try {
+            Identity identityById = identityProvider.getById(uuid);
+            if (identityById != null) {
+                return new UserDO(identityById.getId().toString(), identityById.getName());
+            }
+        } catch (DecryptionException e) {
+            Log.i(TAG, "Unable to decrypt identity, probably not found...", e);
+        }
+        Contact contactById = contactProvider.getById(uuid);
+        if (contactById != null) {
+            return new UserDO(contactById.getId().toString(), contactById.getName());
+        }
+        return null;
     }
 }

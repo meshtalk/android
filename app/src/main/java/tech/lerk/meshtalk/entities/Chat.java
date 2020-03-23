@@ -7,6 +7,7 @@ public class Chat implements Comparable<Chat> {
     private UUID id;
     private String title;
     private UUID recipient;
+    private UUID sender;
     private Set<UUID> messages;
 
     public UUID getId() {
@@ -44,5 +45,13 @@ public class Chat implements Comparable<Chat> {
     @Override
     public int compareTo(Chat o) {
         return getId().compareTo(o.getId());
+    }
+
+    public UUID getSender() {
+        return sender;
+    }
+
+    public void setSender(UUID sender) {
+        this.sender = sender;
     }
 }

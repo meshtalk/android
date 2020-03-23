@@ -1,5 +1,8 @@
 package tech.lerk.meshtalk.entities;
 
+import com.stfalcon.chatkit.commons.models.IMessage;
+import com.stfalcon.chatkit.commons.models.IUser;
+
 import java.util.Date;
 import java.util.UUID;
 

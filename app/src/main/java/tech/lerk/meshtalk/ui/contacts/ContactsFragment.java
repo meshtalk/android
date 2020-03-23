@@ -18,6 +18,7 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -46,6 +47,7 @@ import tech.lerk.meshtalk.R;
 import tech.lerk.meshtalk.Stuff;
 import tech.lerk.meshtalk.entities.Chat;
 import tech.lerk.meshtalk.entities.Contact;
+import tech.lerk.meshtalk.entities.Preferences;
 import tech.lerk.meshtalk.providers.ChatProvider;
 import tech.lerk.meshtalk.providers.ContactProvider;
 
@@ -118,9 +120,15 @@ public class ContactsFragment extends Fragment {
 
     private void handleStartChat(DialogInterface d, Contact recipient) {
         d.dismiss();
+        String defaultSenderId = preferences.getString(Preferences.DEFAULT_IDENTITY.toString(), Stuff.NONE);
+        if (defaultSenderId.equals(Stuff.NONE)) {
+            Toast.makeText(requireContext(), R.string.error_no_default_identity, Toast.LENGTH_LONG).show();
+            return;
+        }
         Chat chat = new Chat();
         chat.setId(UUID.randomUUID());
         chat.setRecipient(recipient.getId());
+        chat.setSender(UUID.fromString(defaultSenderId));
         chat.setTitle("Chat with " + recipient.getName());
         ChatProvider.get(requireContext()).save(chat);
         ((MainActivity) Objects.requireNonNull(getActivity())).getNavController()
