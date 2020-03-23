@@ -1,12 +1,13 @@
 package tech.lerk.meshtalk.entities;
 
-import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
-public class Chat {
+public class Chat implements Comparable<Chat> {
     private UUID id;
     private String title;
     private UUID recipient;
+    private Set<UUID> messages;
 
     public UUID getId() {
         return id;
@@ -30,5 +31,18 @@ public class Chat {
 
     public void setRecipient(UUID recipient) {
         this.recipient = recipient;
+    }
+
+    public Set<UUID> getMessages() {
+        return messages;
+    }
+
+    public void setMessages(Set<UUID> messages) {
+        this.messages = messages;
+    }
+
+    @Override
+    public int compareTo(Chat o) {
+        return getId().compareTo(o.getId());
     }
 }

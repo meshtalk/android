@@ -68,7 +68,7 @@ public class ContactsFragment extends Fragment {
             } else {
                 root.findViewById(R.id.contact_list_empty).setVisibility(View.VISIBLE);
             }
-            ArrayAdapter<Contact> adapter = new ArrayAdapter<Contact>(requireContext(), R.layout.list_item_identity, new ArrayList<>(contacts)) {
+            ArrayAdapter<Contact> adapter = new ArrayAdapter<Contact>(requireContext(), R.layout.list_item_contact, new ArrayList<>(contacts)) {
                 @NonNull
                 @Override
                 public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {

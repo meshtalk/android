@@ -2,11 +2,13 @@ package tech.lerk.meshtalk.providers;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.util.Log;
 
 import androidx.preference.PreferenceManager;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonSyntaxException;
 
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -22,6 +24,7 @@ import tech.lerk.meshtalk.entities.Contact;
 import tech.lerk.meshtalk.entities.Preferences;
 
 public class ContactProvider implements Provider<Contact> {
+    private static final String TAG = ContactProvider.class.getCanonicalName();
     private static ContactProvider instance = null;
     private final SharedPreferences preferences;
     private static final String contactsPrefix = "CONTACT_";
@@ -45,7 +48,12 @@ public class ContactProvider implements Provider<Contact> {
     @Override
     public Contact getById(UUID id) {
         String contactJson = preferences.getString(contactsPrefix + id.toString(), Stuff.EMPTY_OBJECT);
-        return gson.fromJson(contactJson, Contact.class);
+        try {
+            return gson.fromJson(contactJson, Contact.class);
+        } catch (JsonSyntaxException e) {
+            Log.w(TAG, "Unable to parse contact!", e);
+            return null;
+        }
     }
 
     @Override

@@ -8,7 +8,6 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.PublicKey;
 import java.security.interfaces.RSAPublicKey;
 
 public class Stuff {
@@ -46,5 +45,11 @@ public class Stuff {
             Log.e(TAG, "Unable to get fingerprint for key!", e);
             return "ERROR!";
         }
+    }
+
+    public static byte[] getReducedIV(byte[] deviceIV) {
+        byte[] reducedIV = new byte[12];
+        System.arraycopy(deviceIV, 0, reducedIV, 0, reducedIV.length);
+        return reducedIV;
     }
 }

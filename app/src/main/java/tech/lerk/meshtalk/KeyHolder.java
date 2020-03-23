@@ -91,8 +91,6 @@ public class KeyHolder {
     public byte[] getDeviceIV() {
         String encodedIV = preferences.getString(Preferences.DEVICE_IV.toString(), null);
         byte[] deviceIV = Objects.requireNonNull(encodedIV).getBytes(StandardCharsets.UTF_8);
-        byte[] reducedIV = new byte[12];
-        System.arraycopy(deviceIV, 0, reducedIV, 0, reducedIV.length);
-        return reducedIV;
+        return Stuff.getReducedIV(deviceIV);
     }
 }

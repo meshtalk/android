@@ -38,12 +38,14 @@ public class SettingsFragment extends PreferenceFragmentCompat {
         Preference selfDestructPreference = Objects.requireNonNull(findPreference(Preferences.SELF_DESTRUCT.toString()));
         selfDestructPreference.setOnPreferenceClickListener(preference -> {
             if (selfDestructClickCount == 2) {
-                new AlertDialog.Builder(requireContext())
+                AlertDialog dialog = new AlertDialog.Builder(requireContext())
                         .setTitle(R.string.pref_title_self_destruct)
                         .setMessage(R.string.pref_dialog_self_destruct)
                         .setPositiveButton(R.string.action_yes, (d, w) -> selfDestruct(d))
                         .setNegativeButton(R.string.action_no, (d, w) -> d.dismiss())
-                        .create().show();
+                        .create();
+                dialog.setOnDismissListener(d -> selfDestructClickCount = 0);
+                dialog.show();
             } else {
                 Toast.makeText(getContext(), R.string.toast_self_destruct, Toast.LENGTH_SHORT).show();
                 selfDestructClickCount++;

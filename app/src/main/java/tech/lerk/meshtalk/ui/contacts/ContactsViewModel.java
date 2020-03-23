@@ -20,7 +20,7 @@ public class ContactsViewModel extends ViewModel {
         return contacts;
     }
 
-    public void setContacts(Set<Contact> identities) {
-        this.contacts.setValue(identities);
+    public void setContacts(Set<Contact> contacts) {
+        this.contacts.setValue(contacts);
     }
 }

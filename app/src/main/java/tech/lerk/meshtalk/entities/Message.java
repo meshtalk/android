@@ -7,6 +7,7 @@ public class Message {
     private UUID id;
     private UUID chat;
     private UUID sender;
+    private UUID receiver;
     private String content;
     private Date date;
 
@@ -40,6 +41,14 @@ public class Message {
 
     public void setSender(UUID sender) {
         this.sender = sender;
+    }
+
+    public UUID getReceiver() {
+        return receiver;
+    }
+
+    public void setReceiver(UUID receiver) {
+        this.receiver = receiver;
     }
 
     public Date getDate() {

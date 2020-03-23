@@ -4,16 +4,24 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
+import java.util.Set;
+
+import tech.lerk.meshtalk.entities.Chat;
+import tech.lerk.meshtalk.entities.Contact;
+
 public class ChatsViewModel extends ViewModel {
 
-    private MutableLiveData<String> mText;
+    private MutableLiveData<Set<Chat>> chats;
 
     public ChatsViewModel() {
-        mText = new MutableLiveData<>();
-        mText.setValue("TODO: Add chat list");
+        chats = new MutableLiveData<>();
     }
 
-    public LiveData<String> getText() {
-        return mText;
+    public LiveData<Set<Chat>> getChats() {
+        return chats;
+    }
+
+    public void setChats(Set<Chat> chats) {
+        this.chats.setValue(chats);
     }
 }

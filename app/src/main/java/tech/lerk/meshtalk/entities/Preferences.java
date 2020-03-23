@@ -10,7 +10,8 @@ public enum Preferences {
     MESSAGES("messages"),
     CONTACTS("contacts"),
     CHATS("chats"),
-    DEFAULT_IDENTITY("default_identity");
+    DEFAULT_IDENTITY("default_identity"),
+    CURRENT_CHAT("current_chat");
 
     private final String key;
 
