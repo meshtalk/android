@@ -1,5 +1,6 @@
 package tech.lerk.meshtalk.entities;
 
+import java.time.LocalDate;
 import java.util.Date;
 import java.util.UUID;
 
@@ -9,7 +10,7 @@ public class Message implements Comparable<Message> {
     private UUID sender;
     private UUID receiver;
     private String content;
-    private Date date;
+    private LocalDate date;
 
     public UUID getId() {
         return id;
@@ -51,11 +52,11 @@ public class Message implements Comparable<Message> {
         this.receiver = receiver;
     }
 
-    public Date getDate() {
+    public LocalDate getDate() {
         return date;
     }
 
-    public void setDate(Date date) {
+    public void setDate(LocalDate date) {
         this.date = date;
     }
 
