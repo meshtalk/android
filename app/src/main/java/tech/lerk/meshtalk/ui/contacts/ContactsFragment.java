@@ -42,7 +42,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import im.delight.android.identicons.Identicon;
 import tech.lerk.meshtalk.MainActivity;
-import tech.lerk.meshtalk.QRCodeScanActivity;
+import tech.lerk.meshtalk.ui.qr.QRCodeScanActivity;
 import tech.lerk.meshtalk.R;
 import tech.lerk.meshtalk.Stuff;
 import tech.lerk.meshtalk.entities.Chat;
@@ -110,7 +110,6 @@ public class ContactsFragment extends Fragment {
             };
             listView.setAdapter(adapter);
         });
-        updateContacts();
 
         FloatingActionButton fab = root.findViewById(R.id.new_contact_button);
         fab.setOnClickListener(view -> handleActionButtonClick());
@@ -232,6 +231,12 @@ public class ContactsFragment extends Fragment {
             }
 
         });
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        updateContacts();
     }
 
     private void updateContacts() {

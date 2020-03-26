@@ -1,12 +1,9 @@
 package tech.lerk.meshtalk.entities;
 
-import com.stfalcon.chatkit.commons.models.IMessage;
-import com.stfalcon.chatkit.commons.models.IUser;
-
 import java.util.Date;
 import java.util.UUID;
 
-public class Message {
+public class Message implements Comparable<Message> {
     private UUID id;
     private UUID chat;
     private UUID sender;
@@ -60,5 +57,10 @@ public class Message {
 
     public void setDate(Date date) {
         this.date = date;
+    }
+
+    @Override
+    public int compareTo(Message o) {
+        return getDate().compareTo(o.getDate());
     }
 }

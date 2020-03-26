@@ -86,10 +86,10 @@
     <string name="dialog_start_chat_message_post">\?</string>
     <string name="dialog_no_identities_title">No Identities!</string>
     <string name="dialog_no_identities_message">There are no identities. You need at least one to send messges. Do you want to create a new identity now?</string>
-    <string name="chat_list_empty">No Chats...</string>
+    <string name="chat_list_empty">No Chats…</string>
     <string name="list_item_chat_title_label">Chat with Alice</string>
     <string name="list_item_chat_latest_message_label">Hello World!</string>
-    <string name="no_messages">No Messages...</string>
+    <string name="no_messages">No Messages…</string>
     <string name="error_no_chat_selected">No Chat Selected!</string>
     <string name="action_copy_contact_info">Copy Info</string>
     <string name="action_show_qr_code">Show QR</string>
@@ -97,8 +97,11 @@
     <string name="action_copy_details_post">were copied to clipboard!</string>
     <string name="dialog_qr_code_message">You can either screenshot this dialog or let someone scan your phone to share your contact details.</string>
     <string name="dialog_qr_code_image_description">QR Code that can be shared.</string>
-    <string name="dialog_qr_code_title">Share Contact...</string>
+    <string name="dialog_qr_code_title">Share Contact…</string>
     <string name="error_no_camera_permission">Error! No Permission to use camera!</string>
     <string name="error_no_default_identity">Error! You need to set a default identity to use this feature.</string>
-    <string name="hint_message">Message...</string>
+    <string name="hint_message">Message…</string>
+    <string name="error_decoding_contact">Error decoding contact. Please try again!</string>
+    <string name="action_scan_qr_code_long">Scan QR Code...</string>
+    <string name="success_decoding_contact">Contact decoded successfully!</string>
 </resources>
