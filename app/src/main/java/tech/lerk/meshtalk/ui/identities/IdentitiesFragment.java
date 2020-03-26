@@ -6,7 +6,6 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
-import android.graphics.Bitmap;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.text.Editable;
@@ -34,7 +33,6 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import net.glxn.qrgen.android.QRCode;
 
-import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
@@ -137,19 +135,31 @@ public class IdentitiesFragment extends Fragment {
                         String defaultIdentity = preferences.getString(Preferences.DEFAULT_IDENTITY.toString(), "");
                         if (defaultIdentity.equals(identity.getId().toString())) {
                             defaultIdentityButton.setImageDrawable(requireContext().getDrawable(R.drawable.ic_star_black_48dp));
-                            defaultIdentityButton.setOnClickListener(v1 -> new AlertDialog.Builder(requireContext())
-                                    .setTitle(R.string.dialog_unset_default_identity_title)
-                                    .setMessage(R.string.dialog_unset_default_identity_message)
-                                    .setPositiveButton(R.string.action_yes, (d, w) -> handleUnsetDefault(d))
-                                    .setNegativeButton(R.string.action_no, (d, w) -> d.dismiss())
-                                    .create().show());
+                            defaultIdentityButton.setOnClickListener(v1 -> {
+                                if (preferences.getBoolean(Preferences.ASK_DEFAULT_IDENTITY.toString(), true)) {
+                                    new AlertDialog.Builder(requireContext())
+                                            .setTitle(R.string.dialog_unset_default_identity_title)
+                                            .setMessage(R.string.dialog_unset_default_identity_message)
+                                            .setPositiveButton(R.string.action_yes, (d, w) -> handleUnsetDefault(d))
+                                            .setNegativeButton(R.string.action_no, (d, w) -> d.dismiss())
+                                            .create().show();
+                                } else {
+                                    handleUnsetDefault(null);
+                                }
+                            });
                         } else {
-                            defaultIdentityButton.setOnClickListener(v1 -> new AlertDialog.Builder(requireContext())
-                                    .setTitle(R.string.dialog_set_default_identity_title)
-                                    .setMessage(R.string.dialog_set_default_identity_message)
-                                    .setPositiveButton(R.string.action_yes, (d, w) -> handleSetDefault(d, identity.getId()))
-                                    .setNegativeButton(R.string.action_no, (d, w) -> d.dismiss())
-                                    .create().show());
+                            defaultIdentityButton.setOnClickListener(v1 -> {
+                                if (preferences.getBoolean(Preferences.ASK_DEFAULT_IDENTITY.toString(), true)) {
+                                    new AlertDialog.Builder(requireContext())
+                                            .setTitle(R.string.dialog_set_default_identity_title)
+                                            .setMessage(R.string.dialog_set_default_identity_message)
+                                            .setPositiveButton(R.string.action_yes, (d, w) -> handleSetDefault(d, identity.getId()))
+                                            .setNegativeButton(R.string.action_no, (d, w) -> d.dismiss())
+                                            .create().show();
+                                } else {
+                                    handleSetDefault(null, identity.getId());
+                                }
+                            });
                         }
                         identicon.show(identity.getId().toString());
                         name.setText(identity.getName());
@@ -179,14 +189,18 @@ public class IdentitiesFragment extends Fragment {
         return root;
     }
 
-    private void handleUnsetDefault(DialogInterface d) {
-        d.dismiss();
+    private void handleUnsetDefault(@Nullable DialogInterface d) {
+        if (d != null) {
+            d.dismiss();
+        }
         preferences.edit().putString(Preferences.DEFAULT_IDENTITY.toString(), "").apply();
         updateIdentities();
     }
 
-    private void handleSetDefault(DialogInterface d, UUID id) {
-        d.dismiss();
+    private void handleSetDefault(@Nullable DialogInterface d, UUID id) {
+        if (d != null) {
+            d.dismiss();
+        }
         preferences.edit().putString(Preferences.DEFAULT_IDENTITY.toString(), id.toString()).apply();
         updateIdentities();
     }
@@ -205,7 +219,7 @@ public class IdentitiesFragment extends Fragment {
         identitiesViewModel.setIdentities(identities);
     }
 
-    public void handleActionButtonClick() {
+    private void handleActionButtonClick() {
         UUID newUUID = UUID.randomUUID();
         AlertDialog newIdentityDialog = new AlertDialog.Builder(requireContext())
                 .setTitle(R.string.dialog_new_identity_title)

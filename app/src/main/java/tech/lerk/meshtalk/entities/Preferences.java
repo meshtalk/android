@@ -13,6 +13,7 @@ public enum Preferences {
     DEFAULT_IDENTITY("default_identity"),
     CURRENT_CHAT("current_chat"),
     ASK_CREATING_CHAT("ask_creating_chat"),
+    ASK_DEFAULT_IDENTITY("ask_default_identity"),
     USE_MESSAGE_GATEWAY("use_message_gateway"),
     MESSAGE_GATEWAY("message_gateway");
 

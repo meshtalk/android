@@ -7,6 +7,11 @@
             app:defaultValue="true"
             app:key="ask_creating_chat"
             app:title="@string/pref_title_ask_creating_chat" />
+        <SwitchPreference
+            android:summary="@string/pref_summary_ask_default_identity"
+            app:defaultValue="true"
+            app:key="ask_default_identity"
+            app:title="@string/pref_title_ask_default_identity" />
     </PreferenceCategory>
 
     <PreferenceCategory app:title="@string/pref_category_connection">

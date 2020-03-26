@@ -108,7 +108,9 @@
     <string name="pref_summary_use_message_gateway">When selected, the message gateway will be used instead of device-to-device routing.</string>
     <string name="pref_category_connection">Connection</string>
     <string name="hint_uri">URI</string>
-    <string name="pref_default_message_gateway" translatable="false">http://example.com</string>
+    <string name="pref_default_message_gateway" translatable="false">http://example.com</string><!-- TODO: add proper URL -->
     <string name="pref_title_ask_creating_chat">Ask Before Creating Chats</string>
     <string name="pref_summary_ask_creating_chat">When selected, the application will ask before creating a new chat.</string>
+    <string name="pref_summary_ask_default_identity">When selected, the application will ask before setting or removing an identity as default.</string>
+    <string name="pref_title_ask_default_identity">Ask Before Setting Default Identity</string>
 </resources>
