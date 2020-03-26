@@ -11,7 +11,6 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Base64;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -41,6 +40,7 @@ import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
@@ -120,7 +120,7 @@ public class IdentitiesFragment extends Fragment {
                                         ClipboardManager clipboard = Objects.requireNonNull((ClipboardManager)
                                                 requireContext().getSystemService(Context.CLIPBOARD_SERVICE));
                                         String clipboardLabel = getString(R.string.action_copy_details_pre) + identity.getName();
-                                        String encodedPK = Base64.encodeToString(identity.getPublicKey().getEncoded(), Base64.DEFAULT);
+                                        String encodedPK = Base64.getMimeEncoder().encodeToString(identity.getPublicKey().getEncoded());
                                         String clipboardText = "ID: '" + identity.getId().toString() +
                                                 "'. Public Key: '" + encodedPK;
                                         ClipData clip = ClipData.newPlainText(clipboardLabel, clipboardText);

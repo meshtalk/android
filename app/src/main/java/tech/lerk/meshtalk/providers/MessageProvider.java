@@ -2,7 +2,6 @@ package tech.lerk.meshtalk.providers;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.util.Base64;
 import android.util.Log;
 
 import androidx.preference.PreferenceManager;
@@ -12,6 +11,7 @@ import com.google.gson.Gson;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
@@ -104,7 +104,7 @@ public class MessageProvider implements Provider<Message> {
                     Identity identity = identityProvider.getById(message.getReceiver());
                     Cipher cipher = Cipher.getInstance("RSA");
                     cipher.init(Cipher.DECRYPT_MODE, identity.getPrivateKey());
-                    return new String(cipher.doFinal(Base64.decode(message.getContent(), Base64.DEFAULT)), StandardCharsets.UTF_8);
+                    return new String(cipher.doFinal(Base64.getMimeDecoder().decode(message.getContent())), StandardCharsets.UTF_8);
                 } else {
                     return message.getContent();
                 }

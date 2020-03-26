@@ -2,18 +2,15 @@ package tech.lerk.meshtalk.entities.ui;
 
 import com.stfalcon.chatkit.commons.models.IMessage;
 
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.util.Date;
-import java.util.UUID;
+import java.sql.Time;
 
 public class MessageDO implements IMessage, Comparable<MessageDO> {
     private final String id;
     private final String text;
     private final UserDO user;
-    private final LocalDate date;
+    private final Time date;
 
-    public MessageDO(String id, String text, UserDO user, LocalDate date) {
+    public MessageDO(String id, String text, UserDO user, Time date) {
         this.id = id;
         this.text = text;
         this.user = user;
@@ -36,13 +33,12 @@ public class MessageDO implements IMessage, Comparable<MessageDO> {
     }
 
     @Override
-    public Date getCreatedAt() {
-        return Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant());
+    public Time getCreatedAt() {
+        return date;
     }
 
     @Override
     public int compareTo(MessageDO o) {
-        return UUID.fromString(getId())
-                .compareTo(UUID.fromString(o.getId()));
+        return getCreatedAt().compareTo(o.getCreatedAt());
     }
 }

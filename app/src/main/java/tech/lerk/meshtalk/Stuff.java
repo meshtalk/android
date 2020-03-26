@@ -1,7 +1,6 @@
 package tech.lerk.meshtalk;
 
 import android.content.Context;
-import android.util.Base64;
 import android.util.Log;
 
 import java.io.ByteArrayOutputStream;
@@ -10,6 +9,7 @@ import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPublicKey;
+import java.util.Base64;
 import java.util.UUID;
 
 import tech.lerk.meshtalk.entities.Contact;
@@ -49,7 +49,7 @@ public class Stuff {
             byte[] encoded = os.toByteArray();
             MessageDigest digest = MessageDigest.getInstance("SHA256");
             byte[] result = digest.digest(encoded);
-            return Base64.encodeToString(result, Base64.DEFAULT);
+            return Base64.getMimeEncoder().encodeToString(result);
         } catch (NoSuchAlgorithmException | IOException e) {
             Log.e(TAG, "Unable to get fingerprint for key!", e);
             return "ERROR!";

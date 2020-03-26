@@ -8,7 +8,6 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Base64;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -34,6 +33,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
@@ -205,7 +205,7 @@ public class ContactsFragment extends Fragment {
             });
             Stuff.waitOrDonT(200);
 
-            byte[] decodedKey = Base64.decode(publicKey, Base64.DEFAULT);
+            byte[] decodedKey = Base64.getMimeDecoder().decode(publicKey);
             try {
                 KeyFactory kf = KeyFactory.getInstance("RSA");
                 Contact newContact = new Contact();

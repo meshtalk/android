@@ -2,7 +2,6 @@ package tech.lerk.meshtalk.providers;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.util.Base64;
 import android.util.Log;
 
 import androidx.preference.PreferenceManager;
@@ -17,6 +16,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.util.Base64;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
@@ -67,7 +67,7 @@ public class IdentityProvider implements Provider<Identity> {
             String encryptedIdentity = preferences.getString(identityPrefix + id, Stuff.EMPTY_OBJECT);
             Cipher c = Cipher.getInstance(Stuff.AES_MODE);
             c.init(Cipher.DECRYPT_MODE, keyHolder.getAppKey(), new GCMParameterSpec(128, keyHolder.getDeviceIV()));
-            byte[] decodedBytes = c.doFinal(Base64.decode(encryptedIdentity, Base64.DEFAULT));
+            byte[] decodedBytes = c.doFinal(Base64.getMimeDecoder().decode(encryptedIdentity));
             String decryptedJson = new String(decodedBytes, StandardCharsets.UTF_8);
             try {
                 return gson.fromJson(decryptedJson, Identity.class);
@@ -89,7 +89,7 @@ public class IdentityProvider implements Provider<Identity> {
             Cipher c = Cipher.getInstance(Stuff.AES_MODE);
             c.init(Cipher.ENCRYPT_MODE, keyHolder.getAppKey(), new GCMParameterSpec(128, keyHolder.getDeviceIV()));
             byte[] encodedBytes = c.doFinal(json.getBytes(StandardCharsets.UTF_8));
-            String encryptedBase64Encoded = Base64.encodeToString(encodedBytes, Base64.DEFAULT);
+            String encryptedBase64Encoded = Base64.getMimeEncoder().encodeToString(encodedBytes);
             Set<String> identities = preferences.getStringSet(Preferences.IDENTITIES.toString(), new TreeSet<>());
             identities.add(identity.getId().toString());
             preferences.edit()
