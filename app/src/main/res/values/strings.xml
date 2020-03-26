@@ -6,13 +6,11 @@
     <string name="nav_header_subtitle">Select a default identity to see it here.</string>
     <string name="nav_header_desc">Navigation header, default identity image.</string>
     <string name="action_settings">Settings</string>
-
     <string name="menu_chats">Chats</string>
     <string name="menu_contacts">Contacts</string>
     <string name="menu_settings">Settings</string>
     <string name="menu_conversations">Conversations</string>
     <string name="title_activity_settings">Settings</string>
-
     <string name="menu_identities">Identities</string>
     <string name="pref_category_general">General</string>
     <string name="first_start_dialog_title">First Time Setup…</string>
@@ -102,6 +100,15 @@
     <string name="error_no_default_identity">Error! You need to set a default identity to use this feature.</string>
     <string name="hint_message">Message…</string>
     <string name="error_decoding_contact">Error decoding contact. Please try again!</string>
-    <string name="action_scan_qr_code_long">Scan QR Code...</string>
+    <string name="action_scan_qr_code_long">Scan QR Code…</string>
     <string name="success_decoding_contact">Contact decoded successfully!</string>
+    <string name="pref_summary_message_gateway">Change the URL of the message gateway.</string>
+    <string name="pref_title_message_gateway">Message Gateway</string>
+    <string name="pref_title_use_message_gateway">Use Message Gateway</string>
+    <string name="pref_summary_use_message_gateway">When selected, the message gateway will be used instead of device-to-device routing.</string>
+    <string name="pref_category_connection">Connection</string>
+    <string name="hint_uri">URI</string>
+    <string name="pref_default_message_gateway" translatable="false">http://example.com</string>
+    <string name="pref_title_ask_creating_chat">Ask Before Creating Chats</string>
+    <string name="pref_summary_ask_creating_chat">When selected, the application will ask before creating a new chat.</string>
 </resources>

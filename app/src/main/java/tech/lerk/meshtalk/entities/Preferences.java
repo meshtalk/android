@@ -11,7 +11,10 @@ public enum Preferences {
     CONTACTS("contacts"),
     CHATS("chats"),
     DEFAULT_IDENTITY("default_identity"),
-    CURRENT_CHAT("current_chat");
+    CURRENT_CHAT("current_chat"),
+    ASK_CREATING_CHAT("ask_creating_chat"),
+    USE_MESSAGE_GATEWAY("use_message_gateway"),
+    MESSAGE_GATEWAY("message_gateway");
 
     private final String key;
 

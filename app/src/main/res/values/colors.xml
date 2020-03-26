@@ -7,4 +7,5 @@
     <color name="viewfinder_mask">#A8000000</color>
     <color name="viewfinder_laser">#000</color>
     <color name="viewfinder_border">#e1e1e1</color>
+    <color name="red">#B71C1C</color>
 </resources>

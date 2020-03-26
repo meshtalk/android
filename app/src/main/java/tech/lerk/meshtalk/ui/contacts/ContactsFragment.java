@@ -42,7 +42,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import im.delight.android.identicons.Identicon;
 import tech.lerk.meshtalk.MainActivity;
-import tech.lerk.meshtalk.ui.qr.QRCodeScanActivity;
 import tech.lerk.meshtalk.R;
 import tech.lerk.meshtalk.Stuff;
 import tech.lerk.meshtalk.entities.Chat;
@@ -50,6 +49,7 @@ import tech.lerk.meshtalk.entities.Contact;
 import tech.lerk.meshtalk.entities.Preferences;
 import tech.lerk.meshtalk.providers.ChatProvider;
 import tech.lerk.meshtalk.providers.ContactProvider;
+import tech.lerk.meshtalk.ui.qr.QRCodeScanActivity;
 
 public class ContactsFragment extends Fragment {
 
@@ -91,14 +91,23 @@ public class ContactsFragment extends Fragment {
                     Contact contact = this.getItem(position);
                     if (contact != null) {
                         startChatButton.setOnClickListener(v1 -> {
-                            String dialogMessage = getString(R.string.dialog_start_chat_message_pre) +
-                                    contact.getName() + getString(R.string.dialog_start_chat_message_post);
-                            new AlertDialog.Builder(requireContext())
-                                    .setTitle(R.string.dialog_start_chat_title)
-                                    .setMessage(dialogMessage)
-                                    .setPositiveButton(R.string.action_yes, (d, w) -> handleStartChat(d, contact))
-                                    .setNegativeButton(R.string.action_no, (d, w) -> d.dismiss())
-                                    .create().show();
+                            String defaultSenderId = preferences.getString(Preferences.DEFAULT_IDENTITY.toString(), Stuff.NONE);
+                            if (defaultSenderId.equals(Stuff.NONE)) {
+                                Toast.makeText(requireContext(), R.string.error_no_default_identity, Toast.LENGTH_LONG).show();
+                                return;
+                            }
+                            if (preferences.getBoolean(Preferences.ASK_CREATING_CHAT.toString(), true)) {
+                                String dialogMessage = getString(R.string.dialog_start_chat_message_pre) +
+                                        contact.getName() + getString(R.string.dialog_start_chat_message_post);
+                                new AlertDialog.Builder(requireContext())
+                                        .setTitle(R.string.dialog_start_chat_title)
+                                        .setMessage(dialogMessage)
+                                        .setPositiveButton(R.string.action_yes, (d, w) -> handleStartChat(d, contact, defaultSenderId))
+                                        .setNegativeButton(R.string.action_no, (d, w) -> d.dismiss())
+                                        .create().show();
+                            } else {
+                                handleStartChat(null, contact, defaultSenderId);
+                            }
                         });
 
                         identicon.show(contact.getId().toString());
@@ -117,12 +126,9 @@ public class ContactsFragment extends Fragment {
         return root;
     }
 
-    private void handleStartChat(DialogInterface d, Contact recipient) {
-        d.dismiss();
-        String defaultSenderId = preferences.getString(Preferences.DEFAULT_IDENTITY.toString(), Stuff.NONE);
-        if (defaultSenderId.equals(Stuff.NONE)) {
-            Toast.makeText(requireContext(), R.string.error_no_default_identity, Toast.LENGTH_LONG).show();
-            return;
+    private void handleStartChat(@Nullable DialogInterface d, Contact recipient, String defaultSenderId) {
+        if (d != null) {
+            d.dismiss();
         }
         Chat chat = new Chat();
         chat.setId(UUID.randomUUID());

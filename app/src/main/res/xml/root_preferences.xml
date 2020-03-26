@@ -1,11 +1,30 @@
-<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <PreferenceCategory app:title="@string/pref_category_general">
+        <SwitchPreference
+            android:summary="@string/pref_summary_ask_creating_chat"
+            app:defaultValue="true"
+            app:key="ask_creating_chat"
+            app:title="@string/pref_title_ask_creating_chat" />
+    </PreferenceCategory>
 
+    <PreferenceCategory app:title="@string/pref_category_connection">
+        <SwitchPreference
+            app:defaultValue="true"
+            app:enabled="false"
+            app:key="use_message_gateway"
+            app:summary="@string/pref_summary_use_message_gateway"
+            app:title="@string/pref_title_use_message_gateway" />
+        <tech.lerk.meshtalk.ui.settings.URLEditTextPreference
+            app:defaultValue="@string/pref_default_message_gateway"
+            app:key="message_gateway"
+            app:summary="@string/pref_summary_message_gateway"
+            app:title="@string/pref_title_message_gateway" />
     </PreferenceCategory>
 
     <PreferenceCategory app:title="@string/pref_category_security">
-        <Preference
+        <tech.lerk.meshtalk.ui.settings.SelfDestructPreference
             app:key="self_destruct"
             app:summary="@string/pref_summary_self_destruct"
             app:title="@string/pref_title_self_destruct" />

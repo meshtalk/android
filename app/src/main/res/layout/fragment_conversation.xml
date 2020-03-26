@@ -26,7 +26,7 @@
             android:layout_height="match_parent"
             android:autofillHints="text"
             android:hint="@string/hint_message"
-            android:inputType="text|textLongMessage|textShortMessage"
+            android:inputType="text|textShortMessage"
             android:maxLines="10" />
 
     </RelativeLayout>
