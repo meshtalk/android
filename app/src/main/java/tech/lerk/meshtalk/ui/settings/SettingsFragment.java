@@ -16,7 +16,6 @@ import java.util.Objects;
 
 import tech.lerk.meshtalk.KeyHolder;
 import tech.lerk.meshtalk.R;
-import tech.lerk.meshtalk.Stuff;
 import tech.lerk.meshtalk.entities.Preferences;
 import tech.lerk.meshtalk.providers.ChatProvider;
 import tech.lerk.meshtalk.providers.ContactProvider;
@@ -94,17 +93,19 @@ public class SettingsFragment extends PreferenceFragmentCompat {
             });
             IdentityProvider identityProvider = IdentityProvider.get(requireContext());
             identityProvider.getAllIds().forEach(identityProvider::deleteById);
-            PreferenceManager.getDefaultSharedPreferences(requireContext().getApplicationContext())
-                    .edit().remove(Preferences.DEFAULT_IDENTITY.toString()).apply();
             waitOrDonT(200);
             requireActivity().runOnUiThread(() -> {
                 progressBar.setProgress(40, true);
                 loadingTextView.setText(R.string.progress_self_destruct_deleting_app_key);
             });
             keyHolder.deleteAppKey();
-            PreferenceManager.getDefaultSharedPreferences(requireContext().getApplicationContext())
-                    .edit().putString(Preferences.DEVICE_IV.toString(), Stuff.NONE)
-                    .putBoolean(Preferences.FIRST_START.toString(), true).apply();
+            PreferenceManager.getDefaultSharedPreferences(requireContext().getApplicationContext()).edit()
+                    .remove(Preferences.DEVICE_IV.toString())
+                    .remove(Preferences.DEFAULT_IDENTITY.toString())
+                    .remove(Preferences.CURRENT_CHAT.toString())
+                    .remove(Preferences.ASK_CREATING_CHAT.toString())
+                    .putBoolean(Preferences.FIRST_START.toString(), true)
+                    .apply();
             waitOrDonT(250);
             requireActivity().runOnUiThread(() -> {
                 loadingDialog.dismiss();
