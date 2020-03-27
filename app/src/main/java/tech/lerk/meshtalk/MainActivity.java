@@ -94,7 +94,7 @@ public class MainActivity extends AppCompatActivity {
 
         connectionText.setText(R.string.nav_header_connection_connecting);
         connectionIcon.setImageDrawable(getDrawable(R.drawable.ic_refresh_black_16dp));
-        setImageViewTint(connectionIcon, getColor(R.color.warm_grey));
+        setImageViewTint(connectionIcon, getColor(R.color.yellow));
 
         workManager.getWorkInfoByIdLiveData(fetchMetaWorkRequest.getId())
                 .observe(this, info -> {
