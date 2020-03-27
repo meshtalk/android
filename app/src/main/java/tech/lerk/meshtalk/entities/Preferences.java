@@ -15,7 +15,9 @@ public enum Preferences {
     ASK_CREATING_CHAT("ask_creating_chat"),
     ASK_DEFAULT_IDENTITY("ask_default_identity"),
     USE_MESSAGE_GATEWAY("use_message_gateway"),
-    MESSAGE_GATEWAY("message_gateway");
+    MESSAGE_GATEWAY_HOST("message_gateway_host"),
+    MESSAGE_GATEWAY_PATH("message_gateway_path"),
+    MESSAGE_GATEWAY_PROTOCOL("message_gateway_protocol");
 
     private final String key;
 

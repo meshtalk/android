@@ -1,13 +1,16 @@
 package tech.lerk.meshtalk;
 
 import android.content.SharedPreferences;
+import android.content.res.ColorStateList;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import androidx.annotation.ColorInt;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -17,6 +20,9 @@ import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 import androidx.preference.PreferenceManager;
+import androidx.work.Data;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkManager;
 
 import com.google.android.material.navigation.NavigationView;
 
@@ -31,6 +37,8 @@ import tech.lerk.meshtalk.entities.Identity;
 import tech.lerk.meshtalk.entities.Preferences;
 import tech.lerk.meshtalk.exceptions.DecryptionException;
 import tech.lerk.meshtalk.providers.IdentityProvider;
+import tech.lerk.meshtalk.workers.DataKeys;
+import tech.lerk.meshtalk.workers.GatewayMetaWorker;
 
 import static tech.lerk.meshtalk.Stuff.waitOrDonT;
 
@@ -72,6 +80,80 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void updateNavHeader() {
+        updateNavHeaderIdentity();
+        updateNavHeaderConnectionState();
+    }
+
+    private void updateNavHeaderConnectionState() {
+        OneTimeWorkRequest fetchMetaWorkRequest = new OneTimeWorkRequest.Builder(GatewayMetaWorker.class).build();
+        WorkManager workManager = WorkManager.getInstance(this);
+        workManager.enqueue(fetchMetaWorkRequest);
+
+        TextView connectionText = navigationView.getHeaderView(0).findViewById(R.id.nav_header_connection_text);
+        ImageView connectionIcon = navigationView.getHeaderView(0).findViewById(R.id.nav_header_connection_img);
+
+        connectionText.setText(R.string.nav_header_connection_connecting);
+        connectionIcon.setImageDrawable(getDrawable(R.drawable.ic_refresh_black_16dp));
+        setImageViewTint(connectionIcon, getColor(R.color.warm_grey));
+
+        workManager.getWorkInfoByIdLiveData(fetchMetaWorkRequest.getId())
+                .observe(this, info -> {
+                    if (info != null && info.getState().isFinished()) {
+                        Data data = info.getOutputData();
+                        switch (data.getInt(DataKeys.ERROR_CODE.toString(), -1)) {
+                            case GatewayMetaWorker.ERROR_INVALID_SETTINGS:
+                                connectionText.setText(R.string.nav_header_connection_error_settings);
+                                connectionIcon.setImageDrawable(getDrawable(R.drawable.ic_error_black_16dp));
+                                setImageViewTint(connectionIcon, getColor(R.color.red));
+                                break;
+                            case GatewayMetaWorker.ERROR_NONE:
+                                connectionText.setText(R.string.nav_header_connection_established);
+                                connectionIcon.setImageDrawable(getDrawable(R.drawable.ic_check_circle_black_16dp));
+                                setImageViewTint(connectionIcon, getColor(R.color.yellow));
+                                if (data.getInt(DataKeys.API_VERSION.toString(), 0) != Meta.API_VERSION) {
+                                    connectionText.setText(R.string.nav_header_connection_error_api_version);
+                                    connectionIcon.setImageDrawable(getDrawable(R.drawable.ic_error_black_16dp));
+                                    setImageViewTint(connectionIcon, getColor(R.color.red));
+                                } else if (!Meta.CORE_VERSION.equals(data.getString(DataKeys.CORE_VERSION.toString()))) {
+                                    connectionText.setText(R.string.nav_header_connection_error_core_version);
+                                    connectionIcon.setImageDrawable(getDrawable(R.drawable.ic_check_circle_black_16dp));
+                                    setImageViewTint(connectionIcon, getColor(R.color.yellow));
+                                }
+                                break;
+                            case GatewayMetaWorker.ERROR_URI:
+                                connectionText.setText(R.string.nav_header_connection_error_uri);
+                                connectionIcon.setImageDrawable(getDrawable(R.drawable.ic_error_black_16dp));
+                                setImageViewTint(connectionIcon, getColor(R.color.red));
+                                break;
+                            case GatewayMetaWorker.ERROR_CONNECTION:
+                                connectionText.setText(R.string.nav_header_connection_error_connection);
+                                connectionIcon.setImageDrawable(getDrawable(R.drawable.ic_error_black_16dp));
+                                setImageViewTint(connectionIcon, getColor(R.color.red));
+                                break;
+                            case GatewayMetaWorker.ERROR_PARSING:
+                                connectionText.setText(R.string.nav_header_connection_error_parsing);
+                                connectionIcon.setImageDrawable(getDrawable(R.drawable.ic_error_black_16dp));
+                                setImageViewTint(connectionIcon, getColor(R.color.red));
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                });
+    }
+
+    private void setImageViewTint(ImageView imageView, @ColorInt int color) {
+        imageView.setImageTintList(new ColorStateList(new int[][]{
+                new int[]{android.R.attr.state_enabled},
+                new int[]{android.R.attr.state_checked},
+                new int[]{android.R.attr.state_pressed},
+                new int[]{-android.R.attr.state_enabled},
+                new int[]{-android.R.attr.state_checked},
+                new int[]{-android.R.attr.state_pressed}
+        }, new int[]{color, color, color, color, color, color}));
+    }
+
+    private void updateNavHeaderIdentity() {
         String defaultIdentityId = preferences.getString(Preferences.DEFAULT_IDENTITY.toString(), "");
         try {
             Identity defaultIdentity = null;

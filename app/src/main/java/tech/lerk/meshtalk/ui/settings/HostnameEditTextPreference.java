@@ -11,21 +11,21 @@ import androidx.preference.EditTextPreference;
 
 import tech.lerk.meshtalk.R;
 
-public class URLEditTextPreference extends EditTextPreference {
-    public URLEditTextPreference(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
+public class HostnameEditTextPreference extends EditTextPreference {
+    public HostnameEditTextPreference(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
         setOnBindEditTextListener(new URLBindEditTextHandler(getContext()));
     }
 
-    public URLEditTextPreference(Context context, AttributeSet attrs, int defStyleAttr) {
+    public HostnameEditTextPreference(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
     }
 
-    public URLEditTextPreference(Context context, AttributeSet attrs) {
+    public HostnameEditTextPreference(Context context, AttributeSet attrs) {
         super(context, attrs);
     }
 
-    public URLEditTextPreference(Context context) {
+    public HostnameEditTextPreference(Context context) {
         super(context);
     }
 
