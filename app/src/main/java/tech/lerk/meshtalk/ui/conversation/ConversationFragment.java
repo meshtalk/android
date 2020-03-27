@@ -65,7 +65,7 @@ public class ConversationFragment extends Fragment {
         messageET.setInputType(EditorInfo.TYPE_TEXT_FLAG_MULTI_LINE);
         messageET.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_SEND) {
-                //TODO: implement sending...
+                //TODO: implement handshaking before implementing sending...
                 Toast.makeText(requireContext(), "TODO: implement sending...", Toast.LENGTH_LONG).show();
                 messageET.setText("");
             }

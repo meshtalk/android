@@ -7,6 +7,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.preference.PreferenceManager;
 import androidx.work.Data;
+import androidx.work.ListenableWorker;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
@@ -14,20 +15,19 @@ import com.google.gson.Gson;
 import com.google.gson.JsonIOException;
 import com.google.gson.JsonSyntaxException;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
+import java.sql.Time;
+import java.util.UUID;
 
 import tech.lerk.meshtalk.R;
-import tech.lerk.meshtalk.entities.MetaInfo;
+import tech.lerk.meshtalk.entities.Message;
 import tech.lerk.meshtalk.entities.Preferences;
 
-public class GatewayMetaWorker extends Worker {
+public class SubmitMessageWorker extends Worker {
     private static final String TAG = GatewayMetaWorker.class.getCanonicalName();
 
     public static final int ERROR_INVALID_SETTINGS = -1;
@@ -36,21 +36,28 @@ public class GatewayMetaWorker extends Worker {
     public static final int ERROR_CONNECTION = 2;
     public static final int ERROR_PARSING = 3;
 
+    public static final String MESSAGE_ID = "id";
+    public static final String MESSAGE_SENDER = "sender";
+    public static final String MESSAGE_RECEIVER = "receiver";
+    public static final String MESSAGE_CHAT = "chat";
+    public static final String MESSAGE_DATE = "date";
+    public static final String MESSAGE_CONTENT = "content";
+
     private final SharedPreferences preferences;
 
-    public GatewayMetaWorker(@NonNull Context context, @NonNull WorkerParameters params) {
+    public SubmitMessageWorker(@NonNull Context context, @NonNull WorkerParameters params) {
         super(context, params);
         preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
     }
 
     @NonNull
     @Override
-    public Result doWork() {
+    public ListenableWorker.Result doWork() {
         String defaultGatewayHost = getApplicationContext().getString(R.string.pref_default_message_gateway_host);
         String defaultGatewayPort = getApplicationContext().getString(R.string.pref_default_message_gateway_port);
         String gatewayHost = preferences.getString(Preferences.MESSAGE_GATEWAY_HOST.toString(), defaultGatewayHost);
         int gatewayPort = Integer.parseInt(preferences.getString(Preferences.MESSAGE_GATEWAY_PORT.toString(), defaultGatewayPort));
-        String gatewayMetricsPath = preferences.getString(Preferences.MESSAGE_GATEWAY_PATH.toString(), "") + "/meta";
+        String gatewayMetricsPath = preferences.getString(Preferences.MESSAGE_GATEWAY_PATH.toString(), "") + "/";
         String gatewayProtocol = preferences.getString(Preferences.MESSAGE_GATEWAY_PROTOCOL.toString(), "http");
         int errorCode = ERROR_INVALID_SETTINGS;
         if (!gatewayHost.isEmpty()) {
@@ -59,16 +66,20 @@ public class GatewayMetaWorker extends Worker {
             try {
                 URL gatewayMetaUrl = new URL(gatewayProtocol, gatewayHost, gatewayPort, gatewayMetricsPath);
                 HttpURLConnection connection = (HttpURLConnection) gatewayMetaUrl.openConnection();
-
+                connection.setRequestMethod("POST");
                 try {
-                    InputStream inputStream = connection.getInputStream();
-                    InputStreamReader metaReader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
-                    MetaInfo metaInfo = new Gson().fromJson(metaReader, MetaInfo.class);
-                    Log.i(TAG, "connected to gateway: '" + gatewayMetaUrl + "'!");
-                    return Result.success(new Data.Builder()
+                    Message message = new Message();
+                    message.setId(UUID.fromString(getInputData().getString(MESSAGE_ID)));
+                    message.setChat(UUID.fromString(getInputData().getString(MESSAGE_CHAT)));
+                    message.setSender(UUID.fromString(getInputData().getString(MESSAGE_SENDER)));
+                    message.setReceiver(UUID.fromString(getInputData().getString(MESSAGE_RECEIVER)));
+                    message.setDate(Time.valueOf(getInputData().getString(MESSAGE_DATE)));
+                    message.setContent(getInputData().getString(MESSAGE_CONTENT));
+
+                    new Gson().toJson(message, new OutputStreamWriter(connection.getOutputStream()));
+
+                    return ListenableWorker.Result.success(new Data.Builder()
                             .putInt(DataKeys.ERROR_CODE.toString(), errorCode)
-                            .putInt(DataKeys.API_VERSION.toString(), metaInfo.getApiVersion())
-                            .putString(DataKeys.CORE_VERSION.toString(), metaInfo.getCoreVersion())
                             .build());
                 } catch (JsonSyntaxException | JsonIOException e) {
                     Log.e(TAG, "Unable to parse gateway metadata!", e);
@@ -84,6 +95,6 @@ public class GatewayMetaWorker extends Worker {
                 errorCode = ERROR_CONNECTION;
             }
         }
-        return Result.failure(new Data.Builder().putInt(DataKeys.ERROR_CODE.toString(), errorCode).build());
+        return ListenableWorker.Result.failure(new Data.Builder().putInt(DataKeys.ERROR_CODE.toString(), errorCode).build());
     }
 }

@@ -17,6 +17,7 @@ public enum Preferences {
     USE_MESSAGE_GATEWAY("use_message_gateway"),
     MESSAGE_GATEWAY_HOST("message_gateway_host"),
     MESSAGE_GATEWAY_PATH("message_gateway_path"),
+    MESSAGE_GATEWAY_PORT("message_gateway_port"),
     MESSAGE_GATEWAY_PROTOCOL("message_gateway_protocol");
 
     private final String key;
