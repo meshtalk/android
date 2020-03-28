@@ -20,6 +20,7 @@ import java.security.PublicKey;
 
 import me.dm7.barcodescanner.zxing.ZXingScannerView;
 import tech.lerk.meshtalk.R;
+import tech.lerk.meshtalk.Utils;
 import tech.lerk.meshtalk.adapters.PrivateKeyTypeAdapter;
 import tech.lerk.meshtalk.adapters.PublicKeyTypeAdapter;
 import tech.lerk.meshtalk.entities.Chat;
@@ -32,13 +33,7 @@ public class QRCodeScanActivity extends AppCompatActivity {
     private static final String TAG = QRCodeScanActivity.class.getCanonicalName();
     private static final int REQUEST_CAMERA_PERMISSION = 42;
     private QRScanView scannerView;
-    private final Gson gson = new GsonBuilder()
-            .registerTypeAdapter(PrivateKey.class, new PrivateKeyTypeAdapter())
-            .registerTypeAdapter(PublicKey.class, new PublicKeyTypeAdapter())
-            .registerTypeAdapter(Message.class, RuntimeTypeAdapterFactory.of(Message.class, "type")
-                    .registerSubtype(Message.class, Message.class.getName())
-                    .registerSubtype(Chat.Handshake.class, Chat.Handshake.class.getName()))
-            .create();
+    private final Gson gson = Utils.getGson();
 
     @Override
     public void onCreate(Bundle state) {

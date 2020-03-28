@@ -28,6 +28,7 @@ import java.sql.Time;
 import java.util.UUID;
 
 import tech.lerk.meshtalk.R;
+import tech.lerk.meshtalk.Utils;
 import tech.lerk.meshtalk.adapters.PrivateKeyTypeAdapter;
 import tech.lerk.meshtalk.adapters.PublicKeyTypeAdapter;
 import tech.lerk.meshtalk.entities.Chat;
@@ -57,13 +58,7 @@ public class SubmitHandshakeWorker extends Worker {
     public SubmitHandshakeWorker(@NonNull Context context, @NonNull WorkerParameters params) {
         super(context, params);
         preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-        gson = new GsonBuilder()
-                .registerTypeAdapter(PrivateKey.class, new PrivateKeyTypeAdapter())
-                .registerTypeAdapter(PublicKey.class, new PublicKeyTypeAdapter())
-                .registerTypeAdapter(Message.class, RuntimeTypeAdapterFactory.of(Message.class, "type")
-                        .registerSubtype(Message.class, Message.class.getName())
-                        .registerSubtype(Chat.Handshake.class, Chat.Handshake.class.getName()))
-                .create();
+        gson = Utils.getGson();
     }
 
     @NonNull

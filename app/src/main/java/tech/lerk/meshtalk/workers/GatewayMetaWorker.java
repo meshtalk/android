@@ -23,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 
+import tech.lerk.meshtalk.Utils;
 import tech.lerk.meshtalk.adapters.PrivateKeyTypeAdapter;
 import tech.lerk.meshtalk.adapters.PublicKeyTypeAdapter;
 import tech.lerk.meshtalk.entities.Chat;
@@ -41,13 +42,7 @@ public class GatewayMetaWorker extends GatewayWorker {
 
     public GatewayMetaWorker(@NonNull Context context, @NonNull WorkerParameters params) {
         super(context, params);
-        gson = new GsonBuilder()
-                .registerTypeAdapter(PrivateKey.class, new PrivateKeyTypeAdapter())
-                .registerTypeAdapter(PublicKey.class, new PublicKeyTypeAdapter())
-                .registerTypeAdapter(Message.class, RuntimeTypeAdapterFactory.of(Message.class, "type")
-                        .registerSubtype(Message.class, Message.class.getName())
-                        .registerSubtype(Chat.Handshake.class, Chat.Handshake.class.getName()))
-                .create();
+        gson = Utils.getGson();
     }
 
     @NonNull

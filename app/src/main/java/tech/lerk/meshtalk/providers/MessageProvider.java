@@ -29,6 +29,7 @@ import javax.crypto.NoSuchPaddingException;
 
 import tech.lerk.meshtalk.KeyHolder;
 import tech.lerk.meshtalk.Stuff;
+import tech.lerk.meshtalk.Utils;
 import tech.lerk.meshtalk.adapters.PrivateKeyTypeAdapter;
 import tech.lerk.meshtalk.adapters.PublicKeyTypeAdapter;
 import tech.lerk.meshtalk.entities.Chat;
@@ -52,13 +53,7 @@ public class MessageProvider implements Provider<Message> {
         preferences = PreferenceManager.getDefaultSharedPreferences(context.getApplicationContext());
         contactsProvider = ContactProvider.get(context);
         identityProvider = IdentityProvider.get(context);
-        gson = new GsonBuilder()
-                .registerTypeAdapter(PrivateKey.class, new PrivateKeyTypeAdapter())
-                .registerTypeAdapter(PublicKey.class, new PublicKeyTypeAdapter())
-                .registerTypeAdapter(Message.class, RuntimeTypeAdapterFactory.of(Message.class, "type")
-                        .registerSubtype(Message.class, Message.class.getName())
-                        .registerSubtype(Chat.Handshake.class, Chat.Handshake.class.getName()))
-                .create();
+        gson = Utils.getGson();
     }
 
     public static MessageProvider get(Context context) {

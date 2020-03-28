@@ -19,6 +19,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import tech.lerk.meshtalk.Stuff;
+import tech.lerk.meshtalk.Utils;
 import tech.lerk.meshtalk.adapters.PrivateKeyTypeAdapter;
 import tech.lerk.meshtalk.adapters.PublicKeyTypeAdapter;
 import tech.lerk.meshtalk.entities.Chat;
@@ -35,13 +36,7 @@ public class ContactProvider implements Provider<Contact> {
 
     private ContactProvider(Context context) {
         preferences = PreferenceManager.getDefaultSharedPreferences(context.getApplicationContext());
-        gson = new GsonBuilder()
-                .registerTypeAdapter(PrivateKey.class, new PrivateKeyTypeAdapter())
-                .registerTypeAdapter(PublicKey.class, new PublicKeyTypeAdapter())
-                .registerTypeAdapter(Message.class, RuntimeTypeAdapterFactory.of(Message.class, "type")
-                        .registerSubtype(Message.class, Message.class.getName())
-                        .registerSubtype(Chat.Handshake.class, Chat.Handshake.class.getName()))
-                .create();
+        gson = Utils.getGson();
     }
 
     public static ContactProvider get(Context context) {
