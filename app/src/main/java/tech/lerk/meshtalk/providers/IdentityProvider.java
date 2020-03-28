@@ -9,6 +9,7 @@ import androidx.preference.PreferenceManager;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
+import com.google.gson.typeadapters.RuntimeTypeAdapterFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
@@ -32,7 +33,9 @@ import tech.lerk.meshtalk.KeyHolder;
 import tech.lerk.meshtalk.Stuff;
 import tech.lerk.meshtalk.adapters.PrivateKeyTypeAdapter;
 import tech.lerk.meshtalk.adapters.PublicKeyTypeAdapter;
+import tech.lerk.meshtalk.entities.Chat;
 import tech.lerk.meshtalk.entities.Identity;
+import tech.lerk.meshtalk.entities.Message;
 import tech.lerk.meshtalk.entities.Preferences;
 import tech.lerk.meshtalk.exceptions.DecryptionException;
 import tech.lerk.meshtalk.exceptions.EncryptionException;
@@ -51,6 +54,9 @@ public class IdentityProvider implements Provider<Identity> {
         gson = new GsonBuilder()
                 .registerTypeAdapter(PrivateKey.class, new PrivateKeyTypeAdapter())
                 .registerTypeAdapter(PublicKey.class, new PublicKeyTypeAdapter())
+                .registerTypeAdapter(Message.class, RuntimeTypeAdapterFactory.of(Message.class, "type")
+                        .registerSubtype(Message.class, Message.class.getName())
+                        .registerSubtype(Chat.Handshake.class, Chat.Handshake.class.getName()))
                 .create();
     }
 

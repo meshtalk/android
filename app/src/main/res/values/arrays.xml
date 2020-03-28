@@ -1,6 +1,6 @@
 <resources>
     <array name="connection_protocol_values">
-        <item>http</item>
+        <item>@string/pref_default_message_gateway_protocol</item>
         <item>https</item>
     </array>
 </resources>

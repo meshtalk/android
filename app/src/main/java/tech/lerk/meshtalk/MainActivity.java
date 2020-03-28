@@ -21,7 +21,9 @@ import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 import androidx.preference.PreferenceManager;
 import androidx.work.Data;
+import androidx.work.ExistingPeriodicWorkPolicy;
 import androidx.work.OneTimeWorkRequest;
+import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
 import com.google.android.material.navigation.NavigationView;
@@ -31,6 +33,7 @@ import java.security.SecureRandom;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import im.delight.android.identicons.Identicon;
 import tech.lerk.meshtalk.entities.Identity;
@@ -38,6 +41,7 @@ import tech.lerk.meshtalk.entities.Preferences;
 import tech.lerk.meshtalk.exceptions.DecryptionException;
 import tech.lerk.meshtalk.providers.IdentityProvider;
 import tech.lerk.meshtalk.workers.DataKeys;
+import tech.lerk.meshtalk.workers.FetchMessagesWorker;
 import tech.lerk.meshtalk.workers.GatewayMetaWorker;
 
 import static tech.lerk.meshtalk.Stuff.waitOrDonT;
@@ -45,6 +49,7 @@ import static tech.lerk.meshtalk.Stuff.waitOrDonT;
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = MainActivity.class.getCanonicalName();
+    private static final String FETCH_MESSAGES_TAG = "mt.fetch_messages";
     private AppBarConfiguration mAppBarConfiguration;
     private SharedPreferences preferences;
     private KeyHolder keyHolder;
@@ -109,7 +114,7 @@ public class MainActivity extends AppCompatActivity {
                             case GatewayMetaWorker.ERROR_NONE:
                                 connectionText.setText(R.string.nav_header_connection_established);
                                 connectionIcon.setImageDrawable(getDrawable(R.drawable.ic_check_circle_black_16dp));
-                                if(preferences.getString(Preferences.MESSAGE_GATEWAY_PROTOCOL.toString(), "http").equals("https")) {
+                                if (preferences.getString(Preferences.MESSAGE_GATEWAY_PROTOCOL.toString(), "http").equals("https")) {
                                     setImageViewTint(connectionIcon, getColor(R.color.green));
                                 } else {
                                     setImageViewTint(connectionIcon, getColor(R.color.yellow));
@@ -196,6 +201,14 @@ public class MainActivity extends AppCompatActivity {
             navController.navigate(R.id.nav_item_identities);
         } else {
             updateNavHeader();
+        }
+        String defaultIdentity = preferences.getString(Preferences.DEFAULT_IDENTITY.toString(), null);
+        if (defaultIdentity != null) {
+            PeriodicWorkRequest fetchMessagesRequest = new PeriodicWorkRequest
+                    .Builder(FetchMessagesWorker.class, 5, TimeUnit.MINUTES)
+                    .build();
+            WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+                    FETCH_MESSAGES_TAG, ExistingPeriodicWorkPolicy.KEEP, fetchMessagesRequest);
         }
     }
 

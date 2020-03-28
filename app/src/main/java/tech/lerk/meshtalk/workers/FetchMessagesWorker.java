@@ -8,16 +8,19 @@ import androidx.annotation.NonNull;
 import androidx.preference.PreferenceManager;
 import androidx.work.Data;
 import androidx.work.ListenableWorker;
-import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonIOException;
 import com.google.gson.JsonSyntaxException;
+import com.google.gson.reflect.TypeToken;
+import com.google.gson.stream.JsonReader;
 import com.google.gson.typeadapters.RuntimeTypeAdapterFactory;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
@@ -25,17 +28,20 @@ import java.net.URL;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.sql.Time;
+import java.util.ArrayList;
 import java.util.UUID;
 
+import tech.lerk.meshtalk.Meta;
 import tech.lerk.meshtalk.R;
 import tech.lerk.meshtalk.adapters.PrivateKeyTypeAdapter;
 import tech.lerk.meshtalk.adapters.PublicKeyTypeAdapter;
 import tech.lerk.meshtalk.entities.Chat;
 import tech.lerk.meshtalk.entities.Message;
 import tech.lerk.meshtalk.entities.Preferences;
+import tech.lerk.meshtalk.providers.IdentityProvider;
 
-public class SubmitHandshakeWorker extends Worker {
-    private static final String TAG = GatewayMetaWorker.class.getCanonicalName();
+public class FetchMessagesWorker extends GatewayWorker {
+    private static final String TAG = FetchMessagesWorker.class.getCanonicalName();
 
     public static final int ERROR_INVALID_SETTINGS = -1;
     public static final int ERROR_NONE = 0;
@@ -43,20 +49,19 @@ public class SubmitHandshakeWorker extends Worker {
     public static final int ERROR_CONNECTION = 2;
     public static final int ERROR_PARSING = 3;
 
-    public static final String HANDSHAKE_ID = "id";
-    public static final String HANDSHAKE_SENDER = "sender";
-    public static final String HANDSHAKE_RECEIVER = "receiver";
-    public static final String HANDSHAKE_CHAT = "chat";
-    public static final String HANDSHAKE_DATE = "date";
-    public static final String HANDSHAKE_CONTENT = "content";
-    public static final String HANDSHAKE_KEY = "key";
+    public static final String MESSAGE_ID = "id";
+    public static final String MESSAGE_SENDER = "sender";
+    public static final String MESSAGE_RECEIVER = "receiver";
+    public static final String MESSAGE_CHAT = "chat";
+    public static final String MESSAGE_DATE = "date";
+    public static final String MESSAGE_CONTENT = "content";
 
-    private final SharedPreferences preferences;
+    private final IdentityProvider identityProvider;
     private final Gson gson;
 
-    public SubmitHandshakeWorker(@NonNull Context context, @NonNull WorkerParameters params) {
+    public FetchMessagesWorker(@NonNull Context context, @NonNull WorkerParameters params) {
         super(context, params);
-        preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+        identityProvider = IdentityProvider.get(getApplicationContext());
         gson = new GsonBuilder()
                 .registerTypeAdapter(PrivateKey.class, new PrivateKeyTypeAdapter())
                 .registerTypeAdapter(PublicKey.class, new PublicKeyTypeAdapter())
@@ -68,33 +73,20 @@ public class SubmitHandshakeWorker extends Worker {
 
     @NonNull
     @Override
-    public ListenableWorker.Result doWork() {
-        String defaultGatewayHost = getApplicationContext().getString(R.string.pref_default_message_gateway_host);
-        String defaultGatewayPort = getApplicationContext().getString(R.string.pref_default_message_gateway_port);
-        String gatewayHost = preferences.getString(Preferences.MESSAGE_GATEWAY_HOST.toString(), defaultGatewayHost);
-        int gatewayPort = Integer.parseInt(preferences.getString(Preferences.MESSAGE_GATEWAY_PORT.toString(), defaultGatewayPort));
-        String gatewayMetricsPath = preferences.getString(Preferences.MESSAGE_GATEWAY_PATH.toString(), "") + "/";
-        String gatewayProtocol = preferences.getString(Preferences.MESSAGE_GATEWAY_PROTOCOL.toString(), "http");
+    public Result doWork() {
+        GatewayInfo gatewayInfo = getGatewayInfo();
         int errorCode = ERROR_INVALID_SETTINGS;
-        if (!gatewayHost.isEmpty()) {
+        String defaultdentityString = preferences.getString(Preferences.DEFAULT_IDENTITY.toString(), null);
+        if (defaultdentityString != null) {
             errorCode = ERROR_NONE;
-            String hostString = gatewayProtocol + "://" + gatewayHost + ":" + gatewayPort + "/" + gatewayMetricsPath;
+            String hostString = gatewayInfo.toString() + "/receiver/" + defaultdentityString;
             try {
-                URL gatewayMetaUrl = new URL(gatewayProtocol, gatewayHost, gatewayPort, gatewayMetricsPath);
+                URL gatewayMetaUrl = new URL(hostString);
                 HttpURLConnection connection = (HttpURLConnection) gatewayMetaUrl.openConnection();
-                connection.setRequestMethod("POST");
-                try {
-                    Chat.Handshake handshake = new Chat.Handshake();
-                    handshake.setId(UUID.fromString(getInputData().getString(HANDSHAKE_ID)));
-                    handshake.setChat(UUID.fromString(getInputData().getString(HANDSHAKE_CHAT)));
-                    handshake.setSender(UUID.fromString(getInputData().getString(HANDSHAKE_SENDER)));
-                    handshake.setReceiver(UUID.fromString(getInputData().getString(HANDSHAKE_RECEIVER)));
-                    handshake.setDate(Time.valueOf(getInputData().getString(HANDSHAKE_DATE)));
-                    handshake.setContent(getInputData().getString(HANDSHAKE_CONTENT));
-                    handshake.setKey(getInputData().getString(HANDSHAKE_KEY));
-
-                    gson.toJson(handshake, new OutputStreamWriter(connection.getOutputStream()));
-
+                try (InputStream io = connection.getInputStream()) {
+                    gson.fromJson(new JsonReader(new InputStreamReader(io)),
+                            new TypeToken<ArrayList<Message>>() {
+                            }.getType());
                     return ListenableWorker.Result.success(new Data.Builder()
                             .putInt(DataKeys.ERROR_CODE.toString(), errorCode)
                             .build());

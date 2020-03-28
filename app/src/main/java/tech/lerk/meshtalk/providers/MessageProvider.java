@@ -7,10 +7,14 @@ import android.util.Log;
 import androidx.preference.PreferenceManager;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.typeadapters.RuntimeTypeAdapterFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.util.Base64;
 import java.util.Optional;
 import java.util.Set;
@@ -25,6 +29,8 @@ import javax.crypto.NoSuchPaddingException;
 
 import tech.lerk.meshtalk.KeyHolder;
 import tech.lerk.meshtalk.Stuff;
+import tech.lerk.meshtalk.adapters.PrivateKeyTypeAdapter;
+import tech.lerk.meshtalk.adapters.PublicKeyTypeAdapter;
 import tech.lerk.meshtalk.entities.Chat;
 import tech.lerk.meshtalk.entities.Identity;
 import tech.lerk.meshtalk.entities.Message;
@@ -46,7 +52,13 @@ public class MessageProvider implements Provider<Message> {
         preferences = PreferenceManager.getDefaultSharedPreferences(context.getApplicationContext());
         contactsProvider = ContactProvider.get(context);
         identityProvider = IdentityProvider.get(context);
-        gson = new Gson();
+        gson = new GsonBuilder()
+                .registerTypeAdapter(PrivateKey.class, new PrivateKeyTypeAdapter())
+                .registerTypeAdapter(PublicKey.class, new PublicKeyTypeAdapter())
+                .registerTypeAdapter(Message.class, RuntimeTypeAdapterFactory.of(Message.class, "type")
+                        .registerSubtype(Message.class, Message.class.getName())
+                        .registerSubtype(Chat.Handshake.class, Chat.Handshake.class.getName()))
+                .create();
     }
 
     public static MessageProvider get(Context context) {

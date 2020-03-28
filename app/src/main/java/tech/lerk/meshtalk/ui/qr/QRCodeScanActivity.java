@@ -12,6 +12,7 @@ import androidx.core.content.ContextCompat;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.typeadapters.RuntimeTypeAdapterFactory;
 import com.google.zxing.Result;
 
 import java.security.PrivateKey;
@@ -21,7 +22,9 @@ import me.dm7.barcodescanner.zxing.ZXingScannerView;
 import tech.lerk.meshtalk.R;
 import tech.lerk.meshtalk.adapters.PrivateKeyTypeAdapter;
 import tech.lerk.meshtalk.adapters.PublicKeyTypeAdapter;
+import tech.lerk.meshtalk.entities.Chat;
 import tech.lerk.meshtalk.entities.Contact;
+import tech.lerk.meshtalk.entities.Message;
 import tech.lerk.meshtalk.providers.ContactProvider;
 
 public class QRCodeScanActivity extends AppCompatActivity {
@@ -32,6 +35,9 @@ public class QRCodeScanActivity extends AppCompatActivity {
     private final Gson gson = new GsonBuilder()
             .registerTypeAdapter(PrivateKey.class, new PrivateKeyTypeAdapter())
             .registerTypeAdapter(PublicKey.class, new PublicKeyTypeAdapter())
+            .registerTypeAdapter(Message.class, RuntimeTypeAdapterFactory.of(Message.class, "type")
+                    .registerSubtype(Message.class, Message.class.getName())
+                    .registerSubtype(Chat.Handshake.class, Chat.Handshake.class.getName()))
             .create();
 
     @Override
