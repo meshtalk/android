@@ -10,5 +10,6 @@ public interface Provider<T> {
     T getById(UUID id) throws DecryptionException;
     void save(T element) throws EncryptionException;
     void deleteById(UUID id);
+    boolean exists(UUID id);
     Set<UUID> getAllIds();
 }

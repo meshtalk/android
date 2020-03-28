@@ -82,6 +82,11 @@ public class MessageProvider implements Provider<Message> {
     }
 
     @Override
+    public boolean exists(UUID id) {
+        return preferences.getString(messagePrefix + id, null) != null;
+    }
+
+    @Override
     public Set<UUID> getAllIds() {
         return preferences.getStringSet(Preferences.MESSAGES.toString(), new TreeSet<>()).stream()
                 .map(UUID::fromString).collect(Collectors.toCollection(TreeSet::new));

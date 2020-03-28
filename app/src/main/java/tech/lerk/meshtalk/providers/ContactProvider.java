@@ -90,6 +90,11 @@ public class ContactProvider implements Provider<Contact> {
     }
 
     @Override
+    public boolean exists(UUID id) {
+        return preferences.getString(contactsPrefix + id.toString(), null) != null;
+    }
+
+    @Override
     public Set<UUID> getAllIds() {
         return preferences.getStringSet(Preferences.CONTACTS.toString(), new TreeSet<>()).stream()
                 .map(UUID::fromString).collect(Collectors.toCollection(TreeSet::new));

@@ -132,4 +132,10 @@
     <string name="nav_header_connection_error_core_version">Core Version Mismatch!</string>
     <string name="pref_title_message_gateway_port">Message Gateway Port</string>
     <string name="pref_summary_message_gateway_port">Change the port the message gateway is using.</string>
+    <string name="dialog_waiting_for_handshake_title">Waiting for Handshake…</string>
+    <string name="action_back">Back</string>
+    <string name="dialog_waiting_for_handshake_message_sending_handshake" >Sending Handshake…</string>
+    <string name="dialog_waiting_for_handshake_message_waiting_for_handshake" >Waiting For Handshake…</string>
+    <string name="error_unable_to_determine_participant">Unable to determine participant!</string>
+    <string name="success_sending_handshake">Handshake sent successfully!</string>
 </resources>

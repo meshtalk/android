@@ -118,4 +118,9 @@ public class IdentityProvider implements Provider<Identity> {
                 .putStringSet(Preferences.IDENTITIES.toString(), identities)
                 .apply();
     }
+
+    @Override
+    public boolean exists(UUID id) {
+        return preferences.getString(identityPrefix + id, null) != null;
+    }
 }

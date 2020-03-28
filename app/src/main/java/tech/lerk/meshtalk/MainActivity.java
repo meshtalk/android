@@ -109,12 +109,16 @@ public class MainActivity extends AppCompatActivity {
                             case GatewayMetaWorker.ERROR_NONE:
                                 connectionText.setText(R.string.nav_header_connection_established);
                                 connectionIcon.setImageDrawable(getDrawable(R.drawable.ic_check_circle_black_16dp));
-                                setImageViewTint(connectionIcon, getColor(R.color.yellow));
-                                if (data.getInt(DataKeys.API_VERSION.toString(), 0) != Meta.API_VERSION) {
+                                if(preferences.getString(Preferences.MESSAGE_GATEWAY_PROTOCOL.toString(), "http").equals("https")) {
+                                    setImageViewTint(connectionIcon, getColor(R.color.green));
+                                } else {
+                                    setImageViewTint(connectionIcon, getColor(R.color.yellow));
+                                }
+                                if (apiVersionMismatch(data)) {
                                     connectionText.setText(R.string.nav_header_connection_error_api_version);
                                     connectionIcon.setImageDrawable(getDrawable(R.drawable.ic_error_black_16dp));
                                     setImageViewTint(connectionIcon, getColor(R.color.red));
-                                } else if (!Meta.CORE_VERSION.equals(data.getString(DataKeys.CORE_VERSION.toString()))) {
+                                } else if (coreVersionMismatch(data)) {
                                     connectionText.setText(R.string.nav_header_connection_error_core_version);
                                     connectionIcon.setImageDrawable(getDrawable(R.drawable.ic_check_circle_black_16dp));
                                     setImageViewTint(connectionIcon, getColor(R.color.yellow));
@@ -140,6 +144,16 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                 });
+    }
+
+    private boolean apiVersionMismatch(Data data) {
+        return data.getInt(DataKeys.API_VERSION.toString(), 0) != Meta.API_VERSION;
+    }
+
+    private boolean coreVersionMismatch(Data data) {
+        String localCoreVersion = AndroidMeta.getCoreVersion();
+        String gatewayCoreVersion = data.getString(DataKeys.CORE_VERSION.toString());
+        return !localCoreVersion.equals(gatewayCoreVersion);
     }
 
     private void setImageViewTint(ImageView imageView, @ColorInt int color) {

@@ -3,6 +3,8 @@ package tech.lerk.meshtalk;
 import android.content.Context;
 import android.util.Log;
 
+import androidx.annotation.Nullable;
+
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -27,6 +29,7 @@ public class Stuff {
     public static final String APP_KEY_ALIAS = "MeshTalkKey";
     public static final String EMPTY_OBJECT = "{}";
     public static final String NONE = "NONE";
+    public static final String HANDSHAKE_CONTENT = "Henlo!";
 
     public static void waitOrDonT(long millis) {
         try {
@@ -76,6 +79,26 @@ public class Stuff {
         Contact contactById = contactProvider.getById(uuid);
         if (contactById != null) {
             return new UserDO(contactById.getId().toString(), contactById.getName());
+        }
+        return null;
+    }
+
+    @Nullable
+    public static UUID determineSelfId(UUID sender, UUID recipient, IdentityProvider identityProvider) {
+       if(identityProvider.exists(sender)) {
+           return sender;
+       } else if (identityProvider.exists(recipient)) {
+           return recipient;
+       }
+       return null;
+    }
+
+    @Nullable
+    public static UUID determineOtherId(UUID sender, UUID recipient, IdentityProvider identityProvider) {
+        if(identityProvider.exists(sender)) {
+            return recipient;
+        } else if (identityProvider.exists(recipient)) {
+            return sender;
         }
         return null;
     }

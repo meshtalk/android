@@ -70,6 +70,11 @@ public class ChatProvider implements Provider<Chat> {
     }
 
     @Override
+    public boolean exists(UUID id) {
+        return preferences.getString(chatsPrefix + id.toString(), null) != null;
+    }
+
+    @Override
     public Set<UUID> getAllIds() {
         return preferences.getStringSet(Preferences.CHATS.toString(), new TreeSet<>())
                 .stream().map(UUID::fromString).collect(Collectors.toCollection(TreeSet::new));
