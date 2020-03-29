@@ -24,7 +24,6 @@ import androidx.work.WorkManager;
 import com.stfalcon.chatkit.messages.MessagesList;
 import com.stfalcon.chatkit.messages.MessagesListAdapter;
 
-import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Time;
@@ -47,6 +46,7 @@ import tech.lerk.meshtalk.R;
 import tech.lerk.meshtalk.Stuff;
 import tech.lerk.meshtalk.entities.Chat;
 import tech.lerk.meshtalk.entities.Contact;
+import tech.lerk.meshtalk.entities.Handshake;
 import tech.lerk.meshtalk.entities.Message;
 import tech.lerk.meshtalk.entities.Preferences;
 import tech.lerk.meshtalk.entities.ui.MessageDO;
@@ -116,7 +116,7 @@ public class ConversationFragment extends Fragment {
         UUID selfId = Stuff.determineSelfId(currentChat.getSender(), currentChat.getRecipient(), identityProvider);
         UUID otherId = Stuff.determineOtherId(currentChat.getSender(), currentChat.getRecipient(), identityProvider);
         if (otherId != null) {
-            HashMap<UUID, Chat.Handshake> handshakes = currentChat.getHandshake();
+            HashMap<UUID, Handshake> handshakes = currentChat.getHandshake();
             if (handshakes == null) {
                 handshakes = new HashMap<>();
                 currentChat.setHandshake(handshakes);
@@ -147,20 +147,16 @@ public class ConversationFragment extends Fragment {
                             Contact contactById = contactProvider.getById(otherId);
                             if (contactById != null) {
                                 cipher.init(Cipher.ENCRYPT_MODE, contactById.getPublicKey());
-                                Cipher c = Cipher.getInstance(Stuff.AES_MODE);
-                                c.init(Cipher.ENCRYPT_MODE, secretKey);
-                                byte[] encryptedMessage = c.doFinal(Stuff.HANDSHAKE_CONTENT.getBytes(StandardCharsets.UTF_8));
 
-                                Chat.Handshake handshake = new Chat.Handshake();
+                                Handshake handshake = new Handshake();
                                 handshake.setId(UUID.randomUUID());
                                 handshake.setChat(currentChat.getId());
                                 handshake.setReceiver(otherId);
                                 handshake.setSender(selfId);
                                 handshake.setKey(Base64.getMimeEncoder().encodeToString(cipher.doFinal(secretKey.getEncoded())));
-                                handshake.setContent(Base64.getMimeEncoder().encodeToString(encryptedMessage));
                                 handshake.setDate(new Time(System.currentTimeMillis()));
 
-                                HashMap<UUID, Chat.Handshake> handshakes2 = currentChat.getHandshake();
+                                HashMap<UUID, Handshake> handshakes2 = currentChat.getHandshake();
                                 handshakes2.put(otherId, handshake);
                                 currentChat.setHandshake(handshakes2);
                                 chatProvider.save(currentChat);
@@ -172,7 +168,6 @@ public class ConversationFragment extends Fragment {
                                         .putString(DataKeys.HANDSHAKE_RECEIVER.toString(), handshake.getReceiver().toString())
                                         .putString(DataKeys.HANDSHAKE_DATE.toString(), handshake.getDate().toString())
                                         .putString(DataKeys.HANDSHAKE_KEY.toString(), handshake.getKey())
-                                        .putString(DataKeys.HANDSHAKE_CONTENT.toString(), handshake.getContent())
                                         .build();
 
                                 OneTimeWorkRequest sendHandshakeWorkRequest = new OneTimeWorkRequest.Builder(SubmitHandshakeWorker.class)
@@ -205,7 +200,7 @@ public class ConversationFragment extends Fragment {
                                         })
                                 );
                             } else {
-                                Log.e(TAG,  "Contact is null!");
+                                Log.e(TAG, "Contact is null!");
                             }
                         } catch (NoSuchAlgorithmException e) {
                             Log.wtf(TAG, "Unable to get KeyGenerator!", e);

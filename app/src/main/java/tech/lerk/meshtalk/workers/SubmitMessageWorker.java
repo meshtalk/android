@@ -37,7 +37,7 @@ public class SubmitMessageWorker extends GatewayWorker {
     @Override
     public ListenableWorker.Result doWork() {
         int errorCode = ERROR_INVALID_SETTINGS;
-        String hostString = getGatewayInfo().toString() + "/";
+        String hostString = getGatewayInfo().toString() + "/messages/save";
         errorCode = ERROR_NONE;
         try {
             URL gatewayMetaUrl = new URL(hostString);

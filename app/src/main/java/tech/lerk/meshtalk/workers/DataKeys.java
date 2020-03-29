@@ -20,11 +20,13 @@ public enum DataKeys {
     HANDSHAKE_RECEIVER("receiver"),
     HANDSHAKE_CHAT("chat"),
     HANDSHAKE_DATE("date"),
-    HANDSHAKE_CONTENT("content"),
     HANDSHAKE_KEY("key"),
     // MESSAGE LIST
     MESSAGE_LIST_SIZE("message_list_size"),
-    MESSAGE_LIST_ELEMENT_PREFIX("message_list_elem_");
+    MESSAGE_LIST_ELEMENT_PREFIX("message_list_elem_"),
+    // HANDSHAKE LIST
+    HANDSHAKE_LIST_SIZE("handshake_list_size"),
+    HANDSHAKE_LIST_ELEMENT_PREFIX("handshake_list_elem_");
 
     private final String key;
 

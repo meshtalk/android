@@ -17,7 +17,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -26,7 +25,7 @@ import java.sql.Time;
 import java.util.UUID;
 
 import tech.lerk.meshtalk.Utils;
-import tech.lerk.meshtalk.entities.Chat;
+import tech.lerk.meshtalk.entities.Handshake;
 
 public class SubmitHandshakeWorker extends GatewayWorker {
     private static final String TAG = SubmitHandshakeWorker.class.getCanonicalName();
@@ -43,7 +42,7 @@ public class SubmitHandshakeWorker extends GatewayWorker {
     public ListenableWorker.Result doWork() {
         GatewayInfo gatewayInfo = getGatewayInfo();
         int errorCode = ERROR_NONE;
-        String hostString = gatewayInfo.toString() + "/save";
+        String hostString = gatewayInfo.toString() + "/handshakes/save";
         try {
             URL gatewayMetaUrl = new URL(hostString);
             HttpURLConnection connection = (HttpURLConnection) gatewayMetaUrl.openConnection();
@@ -51,13 +50,12 @@ public class SubmitHandshakeWorker extends GatewayWorker {
             connection.setDoOutput(true);
             connection.connect();
             try {
-                Chat.Handshake handshake = new Chat.Handshake();
+                Handshake handshake = new Handshake();
                 handshake.setId(UUID.fromString(getInputData().getString(DataKeys.HANDSHAKE_ID.toString())));
                 handshake.setChat(UUID.fromString(getInputData().getString(DataKeys.HANDSHAKE_CHAT.toString())));
                 handshake.setSender(UUID.fromString(getInputData().getString(DataKeys.HANDSHAKE_SENDER.toString())));
                 handshake.setReceiver(UUID.fromString(getInputData().getString(DataKeys.HANDSHAKE_RECEIVER.toString())));
                 handshake.setDate(Time.valueOf(getInputData().getString(DataKeys.HANDSHAKE_DATE.toString())));
-                handshake.setContent(getInputData().getString(DataKeys.HANDSHAKE_CONTENT.toString()));
                 handshake.setKey(getInputData().getString(DataKeys.HANDSHAKE_KEY.toString()));
 
                 byte[] jsonBytes = gson.toJson(handshake).getBytes(StandardCharsets.UTF_8);
