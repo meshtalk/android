@@ -135,13 +135,22 @@
     <string name="pref_summary_message_gateway_port">Change the port the message gateway is using.</string>
     <string name="dialog_waiting_for_handshake_title">Waiting for Handshake…</string>
     <string name="action_back">Back</string>
-    <string name="dialog_waiting_for_handshake_message_sending_handshake" >Sending Handshake…</string>
-    <string name="dialog_waiting_for_handshake_message_waiting_for_handshake" >Waiting For Handshake…</string>
+    <string name="dialog_waiting_for_handshake_message_sending_handshake">Sending Handshake…</string>
+    <string name="dialog_waiting_for_handshake_message_waiting_for_handshake">Waiting For Handshake…</string>
     <string name="error_unable_to_determine_participant">Unable to determine participant!</string>
     <string name="success_sending_handshake">Handshake sent successfully!</string>
-    <string name="info_fetching_messages">Fetching messages...</string>
+    <string name="info_fetching_messages">Fetching messages…</string>
     <string name="info_fetching_messages_no_default_identity">Automatic message fetching is not available without a default identity set.</string>
     <string name="info_fetching_messages_no_new_messages">No new messages!</string>
     <string name="info_fetching_messages_new_messages_available">New messages available!</string>
     <string name="error_unknown_contact">Unknown contact! Unable to sign handshake!</string>
+    <string name="dialog_new_contact_qr_add_confirmation_pre">"Do you want to add "</string>
+    <string name="dialog_new_contact_qr_add_confirmation_post">" to your contacts?"</string>
+    <string name="action_add">Add</string>
+    <string name="list_item_chat_menu_toggle_desc">Chat List Item Menu Toggle</string>
+    <string name="action_delete">Delete</string>
+    <string name="dialog_delete_chat_title">Delete Chat?</string>
+    <string name="dialog_delete_chat_message">Do you really want to delete this chat? This will also delete any messages associated with it.</string>
+    <string name="action_redo_handshake">Renew Handshake</string>
+    <string name="error_not_implemented">Not implemented yet!</string>
 </resources>

@@ -12,11 +12,16 @@ import com.google.gson.Gson;
 import com.google.gson.JsonIOException;
 import com.google.gson.JsonSyntaxException;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.sql.Time;
 import java.util.UUID;
 
@@ -38,11 +43,13 @@ public class SubmitHandshakeWorker extends GatewayWorker {
     public ListenableWorker.Result doWork() {
         GatewayInfo gatewayInfo = getGatewayInfo();
         int errorCode = ERROR_NONE;
-        String hostString = gatewayInfo.toString() + "/";
+        String hostString = gatewayInfo.toString() + "/save";
         try {
             URL gatewayMetaUrl = new URL(hostString);
             HttpURLConnection connection = (HttpURLConnection) gatewayMetaUrl.openConnection();
             connection.setRequestMethod("POST");
+            connection.setDoOutput(true);
+            connection.connect();
             try {
                 Chat.Handshake handshake = new Chat.Handshake();
                 handshake.setId(UUID.fromString(getInputData().getString(DataKeys.HANDSHAKE_ID.toString())));
@@ -53,11 +60,24 @@ public class SubmitHandshakeWorker extends GatewayWorker {
                 handshake.setContent(getInputData().getString(DataKeys.HANDSHAKE_CONTENT.toString()));
                 handshake.setKey(getInputData().getString(DataKeys.HANDSHAKE_KEY.toString()));
 
-                gson.toJson(handshake, new OutputStreamWriter(connection.getOutputStream()));
-
-                return ListenableWorker.Result.success(new Data.Builder()
-                        .putInt(DataKeys.ERROR_CODE.toString(), errorCode)
-                        .build());
+                byte[] jsonBytes = gson.toJson(handshake).getBytes(StandardCharsets.UTF_8);
+                try (OutputStream os = connection.getOutputStream()) {
+                    os.write(jsonBytes, 0, jsonBytes.length);
+                    os.flush();
+                }
+                try (InputStream inputStream = connection.getInputStream()) {
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8), 8);
+                    StringBuilder result = new StringBuilder();
+                    String s = reader.readLine();
+                    while (s != null) {
+                        result.append(s);
+                        s = reader.readLine();
+                    }
+                    String r = result.toString();
+                    return ListenableWorker.Result.success(new Data.Builder()
+                            .putInt(DataKeys.ERROR_CODE.toString(), errorCode)
+                            .build());
+                }
             } catch (JsonSyntaxException | JsonIOException e) {
                 Log.e(TAG, "Unable to parse gateway metadata!", e);
                 errorCode = ERROR_PARSING;

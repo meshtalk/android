@@ -18,21 +18,32 @@
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
         android:layout_marginStart="8dp"
-        android:textColor="@android:color/primary_text_light"
         android:layout_toEndOf="@id/list_item_chat_identicon"
-        android:text="@string/list_item_chat_title_label" />
+        android:text="@string/list_item_chat_title_label"
+        android:textColor="@android:color/primary_text_light" />
 
     <TextView
         android:id="@+id/list_item_chat_latest_message_label"
         android:layout_width="200dp"
         android:layout_height="wrap_content"
         android:layout_below="@id/list_item_chat_title_label"
-        android:layout_marginTop="8dp"
         android:layout_marginStart="8dp"
-        android:textColor="@android:color/secondary_text_light"
+        android:layout_marginTop="8dp"
         android:layout_toEndOf="@id/list_item_chat_identicon"
         android:lines="2"
-        android:text="@string/list_item_chat_latest_message_label" />
+        android:text="@string/list_item_chat_latest_message_label"
+        android:textColor="@android:color/secondary_text_light" />
+
+    <ImageButton
+        android:id="@+id/list_item_chat_menu_toggle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_centerVertical="true"
+        android:layout_marginEnd="16dp"
+        android:background="#00000000"
+        android:contentDescription="@string/list_item_chat_menu_toggle_desc"
+        android:src="@drawable/ic_more_vert_black_24dp" />
 
 
 </RelativeLayout>

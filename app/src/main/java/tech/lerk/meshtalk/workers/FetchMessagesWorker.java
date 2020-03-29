@@ -30,6 +30,7 @@ import tech.lerk.meshtalk.R;
 import tech.lerk.meshtalk.Utils;
 import tech.lerk.meshtalk.entities.Message;
 import tech.lerk.meshtalk.entities.Preferences;
+import tech.lerk.meshtalk.entities.Sendable;
 
 public class FetchMessagesWorker extends GatewayWorker {
     private static final String TAG = FetchMessagesWorker.class.getCanonicalName();
@@ -89,7 +90,7 @@ public class FetchMessagesWorker extends GatewayWorker {
 
     private Type getMessageListType() {
         //@formatter:off
-        return new TypeToken<ArrayList<Message>>() {}.getType();
+        return new TypeToken<ArrayList<Sendable>>() {}.getType();
         //@formatter:on
     }
 }

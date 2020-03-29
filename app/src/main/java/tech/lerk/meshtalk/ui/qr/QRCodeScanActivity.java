@@ -1,6 +1,7 @@
 package tech.lerk.meshtalk.ui.qr;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.widget.Toast;
@@ -11,21 +12,12 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.typeadapters.RuntimeTypeAdapterFactory;
 import com.google.zxing.Result;
-
-import java.security.PrivateKey;
-import java.security.PublicKey;
 
 import me.dm7.barcodescanner.zxing.ZXingScannerView;
 import tech.lerk.meshtalk.R;
 import tech.lerk.meshtalk.Utils;
-import tech.lerk.meshtalk.adapters.PrivateKeyTypeAdapter;
-import tech.lerk.meshtalk.adapters.PublicKeyTypeAdapter;
-import tech.lerk.meshtalk.entities.Chat;
 import tech.lerk.meshtalk.entities.Contact;
-import tech.lerk.meshtalk.entities.Message;
 import tech.lerk.meshtalk.providers.ContactProvider;
 
 public class QRCodeScanActivity extends AppCompatActivity {
@@ -84,12 +76,22 @@ public class QRCodeScanActivity extends AppCompatActivity {
         public void handleResult(Result r) {
             Contact contact = gson.fromJson(r.getText(), Contact.class);
             if (contact != null) {
-                ContactProvider.get(activity).save(contact);
-                Toast.makeText(activity, R.string.success_decoding_contact, Toast.LENGTH_LONG).show();
-                activity.finish();
+                String messagePre = activity.getString(R.string.dialog_new_contact_qr_add_confirmation_pre);
+                String messagePost = activity.getString(R.string.dialog_new_contact_qr_add_confirmation_post);
+                new AlertDialog.Builder(activity)
+                        .setTitle(R.string.dialog_new_contact_title)
+                        .setMessage(messagePre + contact.getName() + messagePost)
+                        .setNegativeButton(R.string.action_cancel, (d, w) -> {
+                            d.dismiss();
+                            scannerView.resumeCameraPreview(QRCodeResultHandler.this);
+                        })
+                        .setPositiveButton(R.string.action_add, (d, w) -> {
+                            ContactProvider.get(activity).save(contact);
+                            Toast.makeText(activity, R.string.success_decoding_contact, Toast.LENGTH_LONG).show();
+                            activity.finish();
+                        }).create().show();
             } else {
                 Toast.makeText(activity, R.string.error_decoding_contact, Toast.LENGTH_LONG).show();
-                scannerView.resumeCameraPreview(QRCodeResultHandler.this);
             }
         }
     }
