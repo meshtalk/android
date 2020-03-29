@@ -241,16 +241,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void startWorkers() {
-        String defaultIdentity = preferences.getString(Preferences.DEFAULT_IDENTITY.toString(), null);
-        if (defaultIdentity != null) {
-            startFetchMessageWorker(defaultIdentity);
-            startFetchHandshakeWorker(defaultIdentity);
+        if (preferences.getString(Preferences.DEFAULT_IDENTITY.toString(), null) != null) {
+            startFetchMessageWorker();
+            startFetchHandshakeWorker();
         } else {
             Toast.makeText(getApplicationContext(), R.string.info_fetching_messages_no_default_identity, Toast.LENGTH_LONG).show();
         }
     }
 
-    private void startFetchHandshakeWorker(String defaultIdentity) {
+    private void startFetchHandshakeWorker() {
         PeriodicWorkRequest fetchHandshakesRequest = new PeriodicWorkRequest
                 .Builder(FetchHandshakesWorker.class, PeriodicWorkRequest.MIN_PERIODIC_INTERVAL_MILLIS, TimeUnit.MILLISECONDS)
                 .setInitialDelay(100, TimeUnit.MILLISECONDS)
@@ -277,7 +276,7 @@ public class MainActivity extends AppCompatActivity {
                         AsyncTask.execute(() -> {
                             for (int i = 0; i < data.getInt(DataKeys.HANDSHAKE_LIST_SIZE.toString(), 0); i++) {
                                 Handshake handshake = gson.fromJson(data.getString(DataKeys.HANDSHAKE_LIST_ELEMENT_PREFIX + String.valueOf(i)), Handshake.class);
-                                handleHandshake(defaultIdentity, handshake);
+                                handleHandshake(handshake);
                             }
                         });
                         break;
@@ -289,7 +288,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void startFetchMessageWorker(String defaultIdentity) {
+    private void startFetchMessageWorker() {
         PeriodicWorkRequest fetchMessagesRequest = new PeriodicWorkRequest
                 .Builder(FetchMessagesWorker.class, PeriodicWorkRequest.MIN_PERIODIC_INTERVAL_MILLIS, TimeUnit.MILLISECONDS)
                 .setInitialDelay(100, TimeUnit.MILLISECONDS)
@@ -328,7 +327,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void handleHandshake(String defaultIdentity, Handshake handshake) {
+    private void handleHandshake(Handshake handshake) {
         Log.i(TAG, "Handshake received from: '" + handshake.getSender() + "'!");
         Chat chat = chatProvider.getById(handshake.getId());
         if (chat == null) {
@@ -345,15 +344,15 @@ public class MainActivity extends AppCompatActivity {
         HashMap<UUID, Handshake> handshakes = chat.getHandshake();
         handshakes.put(handshake.getReceiver(), handshake);
         if (handshakes.get(chat.getSender()) == null) { // if we haven't sent a handshake yet...
-            replyToHandshake(defaultIdentity, handshake, chat, handshakes);
+            replyToHandshake(handshake, chat);
         }
         chat.setHandshake(handshakes);
         chatProvider.save(chat);
     }
 
-    private void replyToHandshake(String defaultIdentity, Handshake handshake, Chat chat, HashMap<UUID, Handshake> handshakes) {
+    private void replyToHandshake(Handshake handshake, Chat chat) {
         try {
-            Identity handshakeIdentity = identityProvider.getById(UUID.fromString(defaultIdentity));
+            Identity handshakeIdentity = identityProvider.getById(handshake.getReceiver());
             if (handshakeIdentity != null) {
                 SecretKey secretKey = getSecretKey(handshake, handshakeIdentity);
                 if (secretKey != null) {
@@ -370,7 +369,10 @@ public class MainActivity extends AppCompatActivity {
                         handshakeReply.setKey(Base64.getMimeEncoder().encodeToString(cipher.doFinal(secretKey.getEncoded())));
                         handshakeReply.setDate(new Time(System.currentTimeMillis()));
 
-                        handshakes.put(chat.getRecipient(), handshakeReply);
+                        HashMap<UUID, Handshake> handshakes1 = chat.getHandshake();
+                        handshakes1.put(chat.getRecipient(), handshakeReply);
+                        chat.setHandshake(handshakes1);
+                        chatProvider.save(chat);
 
                         Data handshakeData = new Data.Builder()
                                 .putString(DataKeys.HANDSHAKE_ID.toString(), handshake.getId().toString())
