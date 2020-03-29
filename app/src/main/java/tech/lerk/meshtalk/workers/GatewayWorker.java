@@ -12,6 +12,13 @@ import tech.lerk.meshtalk.R;
 import tech.lerk.meshtalk.entities.Preferences;
 
 public abstract class GatewayWorker extends Worker {
+
+    public static final int ERROR_INVALID_SETTINGS = -1;
+    public static final int ERROR_NONE = 0;
+    public static final int ERROR_URI = 1;
+    public static final int ERROR_CONNECTION = 2;
+    public static final int ERROR_PARSING = 3;
+
     protected final SharedPreferences preferences;
 
     GatewayWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
@@ -23,9 +30,10 @@ public abstract class GatewayWorker extends Worker {
         String defaultGatewayHost = getApplicationContext().getString(R.string.pref_default_message_gateway_host);
         String defaultGatewayPort = getApplicationContext().getString(R.string.pref_default_message_gateway_port);
         String defaultGatewayProtocol = getApplicationContext().getString(R.string.pref_default_message_gateway_protocol);
+        String defaultGatewayPath = getApplicationContext().getString(R.string.pref_default_message_gateway_path);
         String gatewayHost = preferences.getString(Preferences.MESSAGE_GATEWAY_HOST.toString(), defaultGatewayHost);
         int gatewayPort = Integer.parseInt(preferences.getString(Preferences.MESSAGE_GATEWAY_PORT.toString(), defaultGatewayPort));
-        String gatewayPath = preferences.getString(Preferences.MESSAGE_GATEWAY_PATH.toString(), "");
+        String gatewayPath = preferences.getString(Preferences.MESSAGE_GATEWAY_PATH.toString(), defaultGatewayPath);
         String gatewayProtocol = preferences.getString(Preferences.MESSAGE_GATEWAY_PROTOCOL.toString(), defaultGatewayProtocol);
         return new GatewayInfo(gatewayProtocol, gatewayHost, gatewayPort, gatewayPath);
     }
@@ -62,7 +70,9 @@ public abstract class GatewayWorker extends Worker {
         @NonNull
         @Override
         public String toString() {
-            return protocol + "://" + host + ":" + port + "/" + path;
+            String h = protocol + "://" + this.host + ":" + port;
+            String p = !this.path.isEmpty() ? "/" + this.path : "";
+            return h + p;
         }
     }
 }

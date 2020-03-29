@@ -8,10 +8,8 @@ import androidx.work.Data;
 import androidx.work.WorkerParameters;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonIOException;
 import com.google.gson.JsonSyntaxException;
-import com.google.gson.typeadapters.RuntimeTypeAdapterFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -20,24 +18,13 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.security.PrivateKey;
-import java.security.PublicKey;
 
 import tech.lerk.meshtalk.Utils;
-import tech.lerk.meshtalk.adapters.PrivateKeyTypeAdapter;
-import tech.lerk.meshtalk.adapters.PublicKeyTypeAdapter;
-import tech.lerk.meshtalk.entities.Chat;
-import tech.lerk.meshtalk.entities.Message;
 import tech.lerk.meshtalk.entities.MetaInfo;
 
 public class GatewayMetaWorker extends GatewayWorker {
     private static final String TAG = GatewayMetaWorker.class.getCanonicalName();
 
-    public static final int ERROR_INVALID_SETTINGS = -1;
-    public static final int ERROR_NONE = 0;
-    public static final int ERROR_URI = 1;
-    public static final int ERROR_CONNECTION = 2;
-    public static final int ERROR_PARSING = 3;
     private final Gson gson;
 
     public GatewayMetaWorker(@NonNull Context context, @NonNull WorkerParameters params) {
@@ -48,9 +35,10 @@ public class GatewayMetaWorker extends GatewayWorker {
     @NonNull
     @Override
     public Result doWork() {
-        GatewayWorker.GatewayInfo gatewayInfo = getGatewayInfo();
+        GatewayInfo gatewayInfo = getGatewayInfo();
         int errorCode = ERROR_NONE;
-        String hostString = gatewayInfo.toString() + "/meta";
+        String s = gatewayInfo.toString();
+        String hostString = s + "/meta";
         try {
             URL gatewayMetaUrl = new URL(hostString);
             HttpURLConnection connection = (HttpURLConnection) gatewayMetaUrl.openConnection();

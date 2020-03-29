@@ -4,17 +4,15 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.preference.PreferenceManager;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.typeadapters.RuntimeTypeAdapterFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.security.PublicKey;
 import java.util.Base64;
 import java.util.Optional;
 import java.util.Set;
@@ -27,11 +25,8 @@ import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 
-import tech.lerk.meshtalk.KeyHolder;
 import tech.lerk.meshtalk.Stuff;
 import tech.lerk.meshtalk.Utils;
-import tech.lerk.meshtalk.adapters.PrivateKeyTypeAdapter;
-import tech.lerk.meshtalk.adapters.PublicKeyTypeAdapter;
 import tech.lerk.meshtalk.entities.Chat;
 import tech.lerk.meshtalk.entities.Identity;
 import tech.lerk.meshtalk.entities.Message;
@@ -41,17 +36,13 @@ import tech.lerk.meshtalk.exceptions.DecryptionException;
 public class MessageProvider implements Provider<Message> {
     private static final String TAG = MessageProvider.class.getCanonicalName();
     private static MessageProvider instance = null;
-    private final KeyHolder keyHolder;
     private final SharedPreferences preferences;
     private static final String messagePrefix = "MESSAGE_";
     private final Gson gson;
-    private final ContactProvider contactsProvider;
     private final IdentityProvider identityProvider;
 
     private MessageProvider(Context context) {
-        keyHolder = KeyHolder.get(context);
         preferences = PreferenceManager.getDefaultSharedPreferences(context.getApplicationContext());
-        contactsProvider = ContactProvider.get(context);
         identityProvider = IdentityProvider.get(context);
         gson = Utils.getGson();
     }
@@ -63,6 +54,7 @@ public class MessageProvider implements Provider<Message> {
         return instance;
     }
 
+    @Nullable
     @Override
     public Message getById(UUID id) {
         return gson.fromJson(preferences.getString(messagePrefix + id, Stuff.EMPTY_OBJECT), Message.class);
@@ -93,6 +85,7 @@ public class MessageProvider implements Provider<Message> {
         return preferences.getString(messagePrefix + id, null) != null;
     }
 
+    @NonNull
     @Override
     public Set<UUID> getAllIds() {
         return preferences.getStringSet(Preferences.MESSAGES.toString(), new TreeSet<>()).stream()
@@ -103,7 +96,7 @@ public class MessageProvider implements Provider<Message> {
         if (chat != null && chat.getMessages() != null) {
             Optional<Message> latestMessage = chat.getMessages().stream()
                     .map(this::getById)
-                    .min((m1, m2) -> m1.getDate().compareTo(m2.getDate()));
+                    .min((m1, m2) -> m1 != null ? m1.getDate().compareTo(m2.getDate()) : null);
             return latestMessage.orElse(null);
         }
         return null;
@@ -114,9 +107,13 @@ public class MessageProvider implements Provider<Message> {
             try {
                 if (message.getSender().equals(chat.getRecipient())) {
                     Identity identity = identityProvider.getById(message.getReceiver());
-                    Cipher cipher = Cipher.getInstance("RSA");
-                    cipher.init(Cipher.DECRYPT_MODE, identity.getPrivateKey());
-                    return new String(cipher.doFinal(Base64.getMimeDecoder().decode(message.getContent())), StandardCharsets.UTF_8);
+                    if (identity != null) {
+                        Cipher cipher = Cipher.getInstance("RSA");
+                        cipher.init(Cipher.DECRYPT_MODE, identity.getPrivateKey());
+                        return new String(cipher.doFinal(Base64.getMimeDecoder().decode(message.getContent())), StandardCharsets.UTF_8);
+                    } else {
+                        Log.e(TAG, "Identity is null!");
+                    }
                 } else {
                     return message.getContent();
                 }

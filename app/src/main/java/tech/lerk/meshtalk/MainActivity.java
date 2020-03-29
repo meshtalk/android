@@ -9,8 +9,10 @@ import android.view.Menu;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.ColorInt;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -27,22 +29,44 @@ import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
 import com.google.android.material.navigation.NavigationView;
+import com.google.gson.Gson;
 
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.interfaces.RSAPublicKey;
+import java.sql.Time;
+import java.util.Base64;
+import java.util.HashMap;
 import java.util.Objects;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+
 import im.delight.android.identicons.Identicon;
+import tech.lerk.meshtalk.entities.Chat;
+import tech.lerk.meshtalk.entities.Contact;
 import tech.lerk.meshtalk.entities.Identity;
+import tech.lerk.meshtalk.entities.Message;
 import tech.lerk.meshtalk.entities.Preferences;
+import tech.lerk.meshtalk.entities.Sendable;
 import tech.lerk.meshtalk.exceptions.DecryptionException;
+import tech.lerk.meshtalk.providers.ChatProvider;
+import tech.lerk.meshtalk.providers.ContactProvider;
 import tech.lerk.meshtalk.providers.IdentityProvider;
+import tech.lerk.meshtalk.providers.MessageProvider;
 import tech.lerk.meshtalk.workers.DataKeys;
 import tech.lerk.meshtalk.workers.FetchMessagesWorker;
 import tech.lerk.meshtalk.workers.GatewayMetaWorker;
+import tech.lerk.meshtalk.workers.SubmitHandshakeWorker;
 
 import static tech.lerk.meshtalk.Stuff.waitOrDonT;
 
@@ -55,6 +79,10 @@ public class MainActivity extends AppCompatActivity {
     private KeyHolder keyHolder;
     private NavController navController;
     private NavigationView navigationView;
+    private Gson gson;
+    private ChatProvider chatProvider;
+    private ContactProvider contactProvider;
+    private IdentityProvider identityProvider;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,13 +102,18 @@ public class MainActivity extends AppCompatActivity {
         NavigationUI.setupActionBarWithNavController(this, navController, mAppBarConfiguration);
         NavigationUI.setupWithNavController(navigationView, navController);
 
+        gson = Utils.getGson();
         keyHolder = KeyHolder.get(getApplicationContext());
         preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+        chatProvider = ChatProvider.get(getApplicationContext());
+        contactProvider = ContactProvider.get(getApplicationContext());
+        identityProvider = IdentityProvider.get(getApplicationContext());
+
         boolean firstStart = preferences.getBoolean(Preferences.FIRST_START.toString(), true);
         if (firstStart) {
             handleFirstStart();
         } else {
-            handleNoIdentities();
+            noIdentitiesCheckpoint();
         }
     }
 
@@ -196,19 +229,201 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void handleNoIdentities() {
+    private void noIdentitiesCheckpoint() {
         if (IdentityProvider.get(getApplicationContext()).getAllIds().size() < 1) {
             navController.navigate(R.id.nav_item_identities);
         } else {
             updateNavHeader();
+            startWorkers();
         }
+    }
+
+    public void startWorkers() {
         String defaultIdentity = preferences.getString(Preferences.DEFAULT_IDENTITY.toString(), null);
         if (defaultIdentity != null) {
             PeriodicWorkRequest fetchMessagesRequest = new PeriodicWorkRequest
-                    .Builder(FetchMessagesWorker.class, 5, TimeUnit.MINUTES)
+                    .Builder(FetchMessagesWorker.class, PeriodicWorkRequest.MIN_PERIODIC_INTERVAL_MILLIS, TimeUnit.MILLISECONDS)
+                    .setInitialDelay(100, TimeUnit.MILLISECONDS)
                     .build();
-            WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-                    FETCH_MESSAGES_TAG, ExistingPeriodicWorkPolicy.KEEP, fetchMessagesRequest);
+            WorkManager instance = WorkManager.getInstance(this);
+            instance.enqueueUniquePeriodicWork(FETCH_MESSAGES_TAG, ExistingPeriodicWorkPolicy.REPLACE, fetchMessagesRequest);
+            instance.getWorkInfoByIdLiveData(fetchMessagesRequest.getId()).observe(this, info -> {
+                if (info != null && info.getState().isFinished()) {
+                    Data data = info.getOutputData();
+                    int errorCode = data.getInt(DataKeys.ERROR_CODE.toString(), -1);
+                    switch (errorCode) {
+                        case FetchMessagesWorker.ERROR_INVALID_SETTINGS:
+                        case FetchMessagesWorker.ERROR_URI:
+                        case FetchMessagesWorker.ERROR_CONNECTION:
+                        case FetchMessagesWorker.ERROR_PARSING:
+                            String msg = "Got error " + errorCode + " while sending handshake!";
+                            Log.e(TAG, msg);
+                            Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
+                            break;
+                        case FetchMessagesWorker.ERROR_NOT_FOUND:
+                            Log.i(TAG, "No messages found on gateway.");
+                            break;
+                        case FetchMessagesWorker.ERROR_NONE:
+                            AsyncTask.execute(() -> {
+                                for (int i = 0; i < data.getInt(DataKeys.MESSAGE_LIST_SIZE.toString(), 0); i++) {
+                                    Sendable message = gson.fromJson(data.getString(DataKeys.MESSAGE_LIST_ELEMENT_PREFIX + String.valueOf(i)), Sendable.class);
+                                    if (message instanceof Chat.Handshake) {
+                                        handleHandshake(defaultIdentity, (Chat.Handshake) message);
+                                    } else if (message instanceof Message) {
+                                        MessageProvider.get(getApplicationContext()).save((Message) message);
+                                    } else {
+                                        Log.e(TAG, "Unknown message type for message: '" + message.getId() + "'!");
+                                    }
+                                }
+                            });
+                            break;
+                        default:
+                            Log.wtf(TAG, "Invalid error code: " + errorCode + "!");
+                            break;
+                    }
+                }
+            });
+        } else {
+            Toast.makeText(getApplicationContext(), R.string.info_fetching_messages_no_default_identity, Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void handleHandshake(String defaultIdentity, Chat.Handshake handshake) {
+        Log.i(TAG, "Handshake received from: '" + handshake.getSender() + "'!");
+        Chat chat = chatProvider.getById(handshake.getId());
+        if (chat == null) {
+            // new chat "request"
+            //TODO add ability to decline a chat (?)
+            chat = new Chat();
+            chat.setId(handshake.getChat());
+            chat.setRecipient(handshake.getSender());
+            chat.setSender(handshake.getReceiver());
+            chat.setTitle(getChatName(handshake.getSender()));
+            chat.setHandshake(new HashMap<>());
+            chat.setMessages(new TreeSet<>());
+        }
+        HashMap<UUID, Chat.Handshake> handshakes = chat.getHandshake();
+        handshakes.put(handshake.getReceiver(), handshake);
+        if (handshakes.get(chat.getSender()) == null) { // if we haven't sent a handshake yet...
+            replyToHandshake(defaultIdentity, handshake, chat, handshakes);
+        }
+        chat.setHandshake(handshakes);
+        chatProvider.save(chat);
+    }
+
+    private void replyToHandshake(String defaultIdentity, Chat.Handshake handshake, Chat chat, HashMap<UUID, Chat.Handshake> handshakes) {
+        try {
+            Identity handshakeIdentity = identityProvider.getById(UUID.fromString(defaultIdentity));
+            if (handshakeIdentity != null) {
+                SecretKey secretKey = getSecretKey(handshake, handshakeIdentity);
+                if (secretKey != null) {
+                    Cipher cipher = Cipher.getInstance("RSA");
+                    Contact contactById = contactProvider.getById(handshake.getSender());
+                    if (contactById != null) {
+                        cipher.init(Cipher.ENCRYPT_MODE, contactById.getPublicKey());
+                        Cipher c = Cipher.getInstance(Stuff.AES_MODE);
+                        c.init(Cipher.ENCRYPT_MODE, secretKey);
+                        byte[] encryptedMessage = c.doFinal(Stuff.HANDSHAKE_CONTENT.getBytes(StandardCharsets.UTF_8));
+
+                        Chat.Handshake handshakeReply = new Chat.Handshake();
+                        handshakeReply.setId(UUID.randomUUID());
+                        handshakeReply.setChat(chat.getId());
+                        handshakeReply.setReceiver(chat.getRecipient());
+                        handshakeReply.setSender(chat.getSender());
+                        handshakeReply.setKey(Base64.getMimeEncoder().encodeToString(cipher.doFinal(secretKey.getEncoded())));
+                        handshakeReply.setContent(Base64.getMimeEncoder().encodeToString(encryptedMessage));
+                        handshakeReply.setDate(new Time(System.currentTimeMillis()));
+
+                        handshakes.put(chat.getRecipient(), handshakeReply);
+
+                        Data handshakeData = new Data.Builder()
+                                .putString(DataKeys.HANDSHAKE_ID.toString(), handshake.getId().toString())
+                                .putString(DataKeys.HANDSHAKE_CHAT.toString(), handshake.getChat().toString())
+                                .putString(DataKeys.HANDSHAKE_SENDER.toString(), handshake.getSender().toString())
+                                .putString(DataKeys.HANDSHAKE_RECEIVER.toString(), handshake.getReceiver().toString())
+                                .putString(DataKeys.HANDSHAKE_DATE.toString(), handshake.getDate().toString())
+                                .putString(DataKeys.HANDSHAKE_KEY.toString(), handshake.getKey())
+                                .putString(DataKeys.HANDSHAKE_CONTENT.toString(), handshake.getContent())
+                                .build();
+
+                        OneTimeWorkRequest sendHandshakeWorkRequest = new OneTimeWorkRequest.Builder(SubmitHandshakeWorker.class)
+                                .setInputData(handshakeData).build();
+                        WorkManager workManager = WorkManager.getInstance(MainActivity.this);
+                        workManager.enqueue(sendHandshakeWorkRequest);
+
+                        runOnUiThread(() ->
+                                workManager.getWorkInfoByIdLiveData(sendHandshakeWorkRequest.getId()).observe(MainActivity.this, info -> {
+                                    if (info != null && info.getState().isFinished()) {
+                                        Data data = info.getOutputData();
+                                        int errorCode = data.getInt(DataKeys.ERROR_CODE.toString(), -1);
+                                        switch (errorCode) {
+                                            case SubmitHandshakeWorker.ERROR_INVALID_SETTINGS:
+                                            case SubmitHandshakeWorker.ERROR_URI:
+                                            case SubmitHandshakeWorker.ERROR_CONNECTION:
+                                            case SubmitHandshakeWorker.ERROR_PARSING:
+                                                String msg = "Got error " + errorCode + " while sending handshake!";
+                                                Log.e(TAG, msg);
+                                                Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
+                                                break;
+                                            case SubmitHandshakeWorker.ERROR_NONE:
+                                            default:
+                                                Toast.makeText(getApplicationContext(), R.string.success_sending_handshake, Toast.LENGTH_LONG).show();
+                                                break;
+                                        }
+                                    }
+                                })
+                        );
+                    } else {
+                        Log.e(TAG, "Contact is null!");
+                        MainActivity.this.runOnUiThread(() -> Toast.makeText(getApplicationContext(),
+                                R.string.error_unknown_contact, Toast.LENGTH_LONG).show());
+                    }
+                } else {
+                    String msg = "Secret key is null!";
+                    Log.e(TAG, msg);
+                    MainActivity.this.runOnUiThread(() -> Toast.makeText(getApplicationContext(),
+                            msg, Toast.LENGTH_LONG).show());
+                }
+            } else {
+                String msg = "Identity is null!";
+                Log.e(TAG, msg);
+                MainActivity.this.runOnUiThread(() -> Toast.makeText(getApplicationContext(),
+                        msg, Toast.LENGTH_LONG).show());
+            }
+        } catch (NoSuchAlgorithmException e) {
+            Log.wtf(TAG, "Unable to get KeyGenerator!", e);
+        } catch (NoSuchPaddingException e) {
+            Log.wtf(TAG, "Unable to get Cipher!", e);
+        } catch (InvalidKeyException e) {
+            Log.e(TAG, "Unable to init Cipher!", e);
+        } catch (BadPaddingException | IllegalBlockSizeException e) {
+            Log.e(TAG, "Unable to encrypt handshake!", e);
+        } catch (DecryptionException e) {
+            Log.e(TAG, "Unable to decrypt identity!", e);
+        }
+    }
+
+    @Nullable
+    private SecretKey getSecretKey(Chat.Handshake handshake, Identity identity) {
+        try {
+            Cipher cipher = Cipher.getInstance("RSA");
+            cipher.init(Cipher.DECRYPT_MODE, identity.getPrivateKey());
+            byte[] decryptedKey = cipher.doFinal(Base64.getMimeDecoder().decode(handshake.getKey()));
+            return new SecretKeySpec(decryptedKey, "AES");
+        } catch (NoSuchAlgorithmException | InvalidKeyException |
+                NoSuchPaddingException | BadPaddingException | IllegalBlockSizeException e) {
+            Log.e(TAG, "Unable to decrypt handshake '" + handshake.getId() + "' with identity '" + identity.getId() + "'");
+        }
+        return null;
+    }
+
+    private String getChatName(UUID sender) {
+        String title = "Chat with ";
+        Contact contact = contactProvider.getById(sender);
+        if (contact == null) {
+            return title + sender;
+        } else {
+            return title + contact.getName();
         }
     }
 
@@ -258,7 +473,7 @@ public class MainActivity extends AppCompatActivity {
             preferences.edit().putBoolean(Preferences.FIRST_START.toString(), false).apply();
             MainActivity.this.runOnUiThread(() -> {
                 loadingDialog.dismiss();
-                handleNoIdentities();
+                noIdentitiesCheckpoint();
             });
         });
     }

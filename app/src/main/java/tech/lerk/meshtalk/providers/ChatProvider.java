@@ -3,6 +3,8 @@ package tech.lerk.meshtalk.providers;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.preference.PreferenceManager;
 
 import com.google.gson.Gson;
@@ -42,9 +44,13 @@ public class ChatProvider implements Provider<Chat> {
         return instance;
     }
 
+    @Nullable
     @Override
     public Chat getById(UUID id) {
-        String chatJson = preferences.getString(chatsPrefix + id.toString(), Stuff.EMPTY_OBJECT);
+        String chatJson = preferences.getString(chatsPrefix + id.toString(), null);
+        if(chatJson == null) {
+            return null;
+        }
         return gson.fromJson(chatJson, Chat.class);
     }
 
@@ -74,6 +80,7 @@ public class ChatProvider implements Provider<Chat> {
         return preferences.getString(chatsPrefix + id.toString(), null) != null;
     }
 
+    @NonNull
     @Override
     public Set<UUID> getAllIds() {
         return preferences.getStringSet(Preferences.CHATS.toString(), new TreeSet<>())

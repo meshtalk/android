@@ -4,19 +4,17 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.preference.PreferenceManager;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
-import com.google.gson.typeadapters.RuntimeTypeAdapterFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.security.PublicKey;
 import java.util.Base64;
 import java.util.Set;
 import java.util.TreeSet;
@@ -32,11 +30,7 @@ import javax.crypto.spec.GCMParameterSpec;
 import tech.lerk.meshtalk.KeyHolder;
 import tech.lerk.meshtalk.Stuff;
 import tech.lerk.meshtalk.Utils;
-import tech.lerk.meshtalk.adapters.PrivateKeyTypeAdapter;
-import tech.lerk.meshtalk.adapters.PublicKeyTypeAdapter;
-import tech.lerk.meshtalk.entities.Chat;
 import tech.lerk.meshtalk.entities.Identity;
-import tech.lerk.meshtalk.entities.Message;
 import tech.lerk.meshtalk.entities.Preferences;
 import tech.lerk.meshtalk.exceptions.DecryptionException;
 import tech.lerk.meshtalk.exceptions.EncryptionException;
@@ -62,6 +56,7 @@ public class IdentityProvider implements Provider<Identity> {
         return instance;
     }
 
+    @Nullable
     @Override
     public Identity getById(UUID id) throws DecryptionException {
         try {
@@ -104,6 +99,7 @@ public class IdentityProvider implements Provider<Identity> {
         }
     }
 
+    @NonNull
     @Override
     public Set<UUID> getAllIds() {
         return preferences.getStringSet(Preferences.IDENTITIES.toString(), new TreeSet<>())

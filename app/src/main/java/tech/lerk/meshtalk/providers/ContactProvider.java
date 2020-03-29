@@ -4,15 +4,13 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.preference.PreferenceManager;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
-import com.google.gson.typeadapters.RuntimeTypeAdapterFactory;
 
-import java.security.PrivateKey;
-import java.security.PublicKey;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
@@ -20,11 +18,7 @@ import java.util.stream.Collectors;
 
 import tech.lerk.meshtalk.Stuff;
 import tech.lerk.meshtalk.Utils;
-import tech.lerk.meshtalk.adapters.PrivateKeyTypeAdapter;
-import tech.lerk.meshtalk.adapters.PublicKeyTypeAdapter;
-import tech.lerk.meshtalk.entities.Chat;
 import tech.lerk.meshtalk.entities.Contact;
-import tech.lerk.meshtalk.entities.Message;
 import tech.lerk.meshtalk.entities.Preferences;
 
 public class ContactProvider implements Provider<Contact> {
@@ -46,10 +40,6 @@ public class ContactProvider implements Provider<Contact> {
         return instance;
     }
 
-    public String getAsShareableJSON(UUID id) {
-        return getAsShareableJSON(getById(id));
-    }
-
     public String getAsShareableJSON(Contact contact) {
         Contact c = new Contact();
         c.setName(contact.getName());
@@ -58,6 +48,7 @@ public class ContactProvider implements Provider<Contact> {
         return gson.toJson(c);
     }
 
+    @Nullable
     @Override
     public Contact getById(UUID id) {
         String contactJson = preferences.getString(contactsPrefix + id.toString(), Stuff.EMPTY_OBJECT);
@@ -95,6 +86,7 @@ public class ContactProvider implements Provider<Contact> {
         return preferences.getString(contactsPrefix + id.toString(), null) != null;
     }
 
+    @NonNull
     @Override
     public Set<UUID> getAllIds() {
         return preferences.getStringSet(Preferences.CONTACTS.toString(), new TreeSet<>()).stream()

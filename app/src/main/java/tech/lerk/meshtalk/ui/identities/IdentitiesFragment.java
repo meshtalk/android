@@ -77,6 +77,7 @@ public class IdentitiesFragment extends Fragment {
             if (identities.size() > 0) {
                 root.findViewById(R.id.identity_list_empty).setVisibility(View.INVISIBLE);
                 ((MainActivity) requireActivity()).updateNavHeader();
+                ((MainActivity) requireActivity()).startWorkers();
             } else {
                 root.findViewById(R.id.identity_list_empty).setVisibility(View.VISIBLE);
             }
