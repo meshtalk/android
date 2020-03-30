@@ -6,12 +6,15 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.ColorInt;
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -131,10 +134,12 @@ public class MainActivity extends AppCompatActivity {
 
         TextView connectionText = navigationView.getHeaderView(0).findViewById(R.id.nav_header_connection_text);
         ImageView connectionIcon = navigationView.getHeaderView(0).findViewById(R.id.nav_header_connection_img);
+        RelativeLayout headerView = navigationView.getHeaderView(0).findViewById(R.id.nav_header_view);
 
         connectionText.setText(R.string.nav_header_connection_connecting);
         connectionIcon.setImageDrawable(getDrawable(R.drawable.ic_refresh_black_16dp));
         setImageViewTint(connectionIcon, getColor(R.color.yellow));
+        headerView.setBackground(getDrawable(R.drawable.side_nav_bar_warn));
 
         workManager.getWorkInfoByIdLiveData(fetchMetaWorkRequest.getId())
                 .observe(this, info -> {
@@ -145,39 +150,47 @@ public class MainActivity extends AppCompatActivity {
                                 connectionText.setText(R.string.nav_header_connection_error_settings);
                                 connectionIcon.setImageDrawable(getDrawable(R.drawable.ic_error_black_16dp));
                                 setImageViewTint(connectionIcon, getColor(R.color.red));
+                                headerView.setBackground(getDrawable(R.drawable.side_nav_bar_error));
                                 break;
                             case GatewayMetaWorker.ERROR_NONE:
                                 connectionText.setText(R.string.nav_header_connection_established);
                                 connectionIcon.setImageDrawable(getDrawable(R.drawable.ic_check_circle_black_16dp));
                                 if (preferences.getString(Preferences.MESSAGE_GATEWAY_PROTOCOL.toString(), "http").equals("https")) {
                                     setImageViewTint(connectionIcon, getColor(R.color.green));
+                                    headerView.setBackground(getDrawable(R.drawable.side_nav_bar_success));
                                 } else {
                                     setImageViewTint(connectionIcon, getColor(R.color.yellow));
+                                    headerView.setBackground(getDrawable(R.drawable.side_nav_bar_warn));
                                 }
                                 if (apiVersionMismatch(data)) {
                                     connectionText.setText(R.string.nav_header_connection_error_api_version);
                                     connectionIcon.setImageDrawable(getDrawable(R.drawable.ic_error_black_16dp));
                                     setImageViewTint(connectionIcon, getColor(R.color.red));
+                                    headerView.setBackground(getDrawable(R.drawable.side_nav_bar_error));
                                 } else if (coreVersionMismatch(data)) {
                                     connectionText.setText(R.string.nav_header_connection_error_core_version);
                                     connectionIcon.setImageDrawable(getDrawable(R.drawable.ic_check_circle_black_16dp));
                                     setImageViewTint(connectionIcon, getColor(R.color.yellow));
+                                    headerView.setBackground(getDrawable(R.drawable.side_nav_bar_warn));
                                 }
                                 break;
                             case GatewayMetaWorker.ERROR_URI:
                                 connectionText.setText(R.string.nav_header_connection_error_uri);
                                 connectionIcon.setImageDrawable(getDrawable(R.drawable.ic_error_black_16dp));
                                 setImageViewTint(connectionIcon, getColor(R.color.red));
+                                headerView.setBackground(getDrawable(R.drawable.side_nav_bar_error));
                                 break;
                             case GatewayMetaWorker.ERROR_CONNECTION:
                                 connectionText.setText(R.string.nav_header_connection_error_connection);
                                 connectionIcon.setImageDrawable(getDrawable(R.drawable.ic_error_black_16dp));
                                 setImageViewTint(connectionIcon, getColor(R.color.red));
+                                headerView.setBackground(getDrawable(R.drawable.side_nav_bar_error));
                                 break;
                             case GatewayMetaWorker.ERROR_PARSING:
                                 connectionText.setText(R.string.nav_header_connection_error_parsing);
                                 connectionIcon.setImageDrawable(getDrawable(R.drawable.ic_error_black_16dp));
                                 setImageViewTint(connectionIcon, getColor(R.color.red));
+                                headerView.setBackground(getDrawable(R.drawable.side_nav_bar_error));
                                 break;
                             default:
                                 break;
@@ -513,6 +526,15 @@ public class MainActivity extends AppCompatActivity {
                 noIdentitiesCheckpoint();
             });
         });
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if(item.getItemId() == R.id.action_settings) {
+            navController.navigate(R.id.nav_item_settings);
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     @Override
