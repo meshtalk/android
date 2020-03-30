@@ -14,7 +14,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProviders;
 import androidx.preference.PreferenceManager;
 import androidx.work.Data;
@@ -55,10 +54,11 @@ import tech.lerk.meshtalk.providers.ChatProvider;
 import tech.lerk.meshtalk.providers.ContactProvider;
 import tech.lerk.meshtalk.providers.IdentityProvider;
 import tech.lerk.meshtalk.providers.MessageProvider;
+import tech.lerk.meshtalk.ui.UpdatableFragment;
 import tech.lerk.meshtalk.workers.DataKeys;
 import tech.lerk.meshtalk.workers.SubmitHandshakeWorker;
 
-public class ConversationFragment extends Fragment {
+public class ConversationFragment extends UpdatableFragment {
 
     private static final String TAG = ConversationFragment.class.getCanonicalName();
     private ConversationViewModel conversationViewModel;
@@ -108,7 +108,7 @@ public class ConversationFragment extends Fragment {
             return false;
         });
 
-        updateMessages();
+        updateViews();
         return root;
     }
 
@@ -223,7 +223,8 @@ public class ConversationFragment extends Fragment {
         }
     }
 
-    private void updateMessages() {
+    @Override
+    public void updateViews() {
         checkForHandshake();
         TreeSet<Message> messages = messageProvider.getAllIds().stream()
                 .map(i -> messageProvider.getById(i))

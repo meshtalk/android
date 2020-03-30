@@ -21,7 +21,6 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProviders;
 import androidx.preference.PreferenceManager;
 
@@ -49,9 +48,10 @@ import tech.lerk.meshtalk.entities.Contact;
 import tech.lerk.meshtalk.entities.Preferences;
 import tech.lerk.meshtalk.providers.ChatProvider;
 import tech.lerk.meshtalk.providers.ContactProvider;
+import tech.lerk.meshtalk.ui.UpdatableFragment;
 import tech.lerk.meshtalk.ui.qr.QRCodeScanActivity;
 
-public class ContactsFragment extends Fragment {
+public class ContactsFragment extends UpdatableFragment {
 
     private static final String TAG = ContactsFragment.class.getCanonicalName();
     private ContactsViewModel contactsViewModel;
@@ -222,7 +222,7 @@ public class ContactsFragment extends Fragment {
 
                 requireActivity().runOnUiThread(() -> {
                     loadingDialog.get().dismiss();
-                    updateContacts();
+                    updateViews();
                 });
             } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
                 Log.e(TAG, "Unable to decode key!", e);
@@ -240,12 +240,7 @@ public class ContactsFragment extends Fragment {
     }
 
     @Override
-    public void onResume() {
-        super.onResume();
-        updateContacts();
-    }
-
-    private void updateContacts() {
+    public void updateViews() {
         Set<Contact> contacts = new TreeSet<>();
         contactProvider.getAllIds().forEach(id -> contacts.add(contactProvider.getById(id)));
         contactsViewModel.setContacts(contacts);

@@ -20,15 +20,16 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.fragment.app.Fragment;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 import androidx.preference.PreferenceManager;
+import androidx.work.Constraints;
 import androidx.work.Data;
-import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.NetworkType;
 import androidx.work.OneTimeWorkRequest;
-import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
 import com.google.android.material.navigation.NavigationView;
@@ -45,7 +46,6 @@ import java.util.HashMap;
 import java.util.Objects;
 import java.util.TreeSet;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -66,6 +66,7 @@ import tech.lerk.meshtalk.providers.ChatProvider;
 import tech.lerk.meshtalk.providers.ContactProvider;
 import tech.lerk.meshtalk.providers.IdentityProvider;
 import tech.lerk.meshtalk.providers.MessageProvider;
+import tech.lerk.meshtalk.ui.UpdatableFragment;
 import tech.lerk.meshtalk.workers.DataKeys;
 import tech.lerk.meshtalk.workers.FetchHandshakesWorker;
 import tech.lerk.meshtalk.workers.FetchMessagesWorker;
@@ -204,9 +205,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean coreVersionMismatch(Data data) {
-        String localCoreVersion = AndroidMeta.getCoreVersion();
         String gatewayCoreVersion = data.getString(DataKeys.CORE_VERSION.toString());
-        return !localCoreVersion.equals(gatewayCoreVersion);
+        return !Meta.CORE_VERSION.equals(gatewayCoreVersion);
     }
 
     private void setImageViewTint(ImageView imageView, @ColorInt int color) {
@@ -263,12 +263,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void startFetchHandshakeWorker() {
-        PeriodicWorkRequest fetchHandshakesRequest = new PeriodicWorkRequest
-                .Builder(FetchHandshakesWorker.class, PeriodicWorkRequest.MIN_PERIODIC_INTERVAL_MILLIS, TimeUnit.MILLISECONDS)
-                .setInitialDelay(100, TimeUnit.MILLISECONDS)
+        OneTimeWorkRequest fetchHandshakesRequest = new OneTimeWorkRequest
+                .Builder(FetchHandshakesWorker.class)
+                .setConstraints(new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
                 .build();
         WorkManager instance = WorkManager.getInstance(this);
-        instance.enqueueUniquePeriodicWork(FETCH_HANDSHAKES_TAG, ExistingPeriodicWorkPolicy.REPLACE, fetchHandshakesRequest);
+        instance.enqueue(fetchHandshakesRequest);
         instance.getWorkInfoByIdLiveData(fetchHandshakesRequest.getId()).observe(this, info -> {
             if (info != null && info.getState().isFinished()) {
                 Data data = info.getOutputData();
@@ -283,15 +283,10 @@ public class MainActivity extends AppCompatActivity {
                         Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
                         break;
                     case FetchHandshakesWorker.ERROR_NOT_FOUND:
-                        Log.i(TAG, "No handshakes found on gateway.");
-                        break;
                     case FetchHandshakesWorker.ERROR_NONE:
-                        AsyncTask.execute(() -> {
-                            for (int i = 0; i < data.getInt(DataKeys.HANDSHAKE_LIST_SIZE.toString(), 0); i++) {
-                                Handshake handshake = gson.fromJson(data.getString(DataKeys.HANDSHAKE_LIST_ELEMENT_PREFIX + String.valueOf(i)), Handshake.class);
-                                handleHandshake(handshake);
-                            }
-                        });
+                        if (data.getInt(DataKeys.HANDSHAKE_LIST_SIZE.toString(), 0) > 0) {
+                            parseHandshakeResponse(data);
+                        }
                         break;
                     default:
                         Log.wtf(TAG, "Invalid error code: " + errorCode + "!");
@@ -301,13 +296,22 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private void parseHandshakeResponse(Data data) {
+        AsyncTask.execute(() -> {
+            for (int i = 0; i < data.getInt(DataKeys.HANDSHAKE_LIST_SIZE.toString(), 0); i++) {
+                Handshake handshake = gson.fromJson(data.getString(DataKeys.HANDSHAKE_LIST_ELEMENT_PREFIX + String.valueOf(i)), Handshake.class);
+                handleHandshake(handshake);
+            }
+        });
+    }
+
     private void startFetchMessageWorker() {
-        PeriodicWorkRequest fetchMessagesRequest = new PeriodicWorkRequest
-                .Builder(FetchMessagesWorker.class, PeriodicWorkRequest.MIN_PERIODIC_INTERVAL_MILLIS, TimeUnit.MILLISECONDS)
-                .setInitialDelay(100, TimeUnit.MILLISECONDS)
+        OneTimeWorkRequest fetchMessagesRequest = new OneTimeWorkRequest
+                .Builder(FetchMessagesWorker.class)
+                .setConstraints(new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
                 .build();
         WorkManager instance = WorkManager.getInstance(this);
-        instance.enqueueUniquePeriodicWork(FETCH_MESSAGES_TAG, ExistingPeriodicWorkPolicy.REPLACE, fetchMessagesRequest);
+        instance.enqueue(fetchMessagesRequest);
         instance.getWorkInfoByIdLiveData(fetchMessagesRequest.getId()).observe(this, info -> {
             if (info != null && info.getState().isFinished()) {
                 Data data = info.getOutputData();
@@ -330,6 +334,7 @@ public class MainActivity extends AppCompatActivity {
                                 Message message = gson.fromJson(data.getString(DataKeys.MESSAGE_LIST_ELEMENT_PREFIX + String.valueOf(i)), Message.class);
                                 MessageProvider.get(getApplicationContext()).save(message);
                             }
+                            callUpdateOnFragment();
                         });
                         break;
                     default:
@@ -355,12 +360,31 @@ public class MainActivity extends AppCompatActivity {
             chat.setMessages(new TreeSet<>());
         }
         HashMap<UUID, Handshake> handshakes = chat.getHandshake();
+
+        Handshake maybeExistingHandshake = handshakes.get(handshake.getReceiver());
+        if (maybeExistingHandshake != null && maybeExistingHandshake.getId().equals(handshake.getId())) {
+            return; // we already have this one.
+        }
+
         handshakes.put(handshake.getReceiver(), handshake);
-        if (handshakes.get(chat.getSender()) == null) { // if we haven't sent a handshake yet...
+        if (handshakes.get(handshake.getSender()) == null) { // if we haven't sent a handshake yet...
             replyToHandshake(handshake, chat);
         }
         chat.setHandshake(handshakes);
         chatProvider.save(chat);
+        callUpdateOnFragment();
+    }
+
+    private void callUpdateOnFragment() {
+        MainActivity.this.runOnUiThread(() -> {
+            Fragment fragmentById = getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment);
+            if (fragmentById != null) {
+                Fragment primaryNavigationFragment = fragmentById.getChildFragmentManager().getPrimaryNavigationFragment();
+                if (primaryNavigationFragment instanceof UpdatableFragment) {
+                    ((UpdatableFragment) primaryNavigationFragment).updateViews();
+                }
+            }
+        });
     }
 
     private void replyToHandshake(Handshake handshake, Chat chat) {
@@ -388,12 +412,12 @@ public class MainActivity extends AppCompatActivity {
                         chatProvider.save(chat);
 
                         Data handshakeData = new Data.Builder()
-                                .putString(DataKeys.HANDSHAKE_ID.toString(), handshake.getId().toString())
-                                .putString(DataKeys.HANDSHAKE_CHAT.toString(), handshake.getChat().toString())
-                                .putString(DataKeys.HANDSHAKE_SENDER.toString(), handshake.getSender().toString())
-                                .putString(DataKeys.HANDSHAKE_RECEIVER.toString(), handshake.getReceiver().toString())
-                                .putString(DataKeys.HANDSHAKE_DATE.toString(), handshake.getDate().toString())
-                                .putString(DataKeys.HANDSHAKE_KEY.toString(), handshake.getKey())
+                                .putString(DataKeys.HANDSHAKE_ID.toString(), handshakeReply.getId().toString())
+                                .putString(DataKeys.HANDSHAKE_CHAT.toString(), handshakeReply.getChat().toString())
+                                .putString(DataKeys.HANDSHAKE_SENDER.toString(), handshakeReply.getSender().toString())
+                                .putString(DataKeys.HANDSHAKE_RECEIVER.toString(), handshakeReply.getReceiver().toString())
+                                .putString(DataKeys.HANDSHAKE_DATE.toString(), handshakeReply.getDate().toString())
+                                .putString(DataKeys.HANDSHAKE_KEY.toString(), handshakeReply.getKey())
                                 .build();
 
                         OneTimeWorkRequest sendHandshakeWorkRequest = new OneTimeWorkRequest.Builder(SubmitHandshakeWorker.class)
@@ -530,9 +554,11 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        if(item.getItemId() == R.id.action_settings) {
+        if (item.getItemId() == R.id.action_settings) {
             navController.navigate(R.id.nav_item_settings);
             return true;
+        } else if (item.getItemId() == R.id.action_refresh) {
+            startWorkers();
         }
         return super.onOptionsItemSelected(item);
     }

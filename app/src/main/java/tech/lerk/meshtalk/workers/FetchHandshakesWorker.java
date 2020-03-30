@@ -3,6 +3,7 @@ package tech.lerk.meshtalk.workers;
 import android.content.Context;
 import android.os.Looper;
 import android.util.Log;
+import android.util.Pair;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -47,44 +48,100 @@ public class FetchHandshakesWorker extends GatewayWorker {
     @Override
     public Result doWork() {
         GatewayInfo gatewayInfo = getGatewayInfo();
-        int errorCode = ERROR_INVALID_SETTINGS;
         String defaultdentityString = preferences.getString(Preferences.DEFAULT_IDENTITY.toString(), null);
         if (defaultdentityString != null) {
-            errorCode = ERROR_NONE;
-            String hostString = gatewayInfo.toString() + "/handshakes/receiver/" + defaultdentityString;
             if (Looper.myLooper() == null) {
                 Looper.prepare();
             }
             Toast.makeText(getApplicationContext(), R.string.info_fetching_handshakes, Toast.LENGTH_SHORT).show();
-            try {
-                URL gatewayMetaUrl = new URL(hostString);
-                HttpURLConnection connection = (HttpURLConnection) gatewayMetaUrl.openConnection();
-                try (InputStream io = connection.getInputStream()) {
-                    ArrayList<Handshake> handshakes = gson.fromJson(new JsonReader(new InputStreamReader(io)), getHandshakeListType());
-                    Data.Builder dataBuilder = new Data.Builder().putInt(DataKeys.ERROR_CODE.toString(), errorCode);
-                    dataBuilder.putInt(DataKeys.HANDSHAKE_LIST_SIZE.toString(), handshakes.size());
-                    for (int i = 0; i < handshakes.size(); i++) {
-                        dataBuilder.putString(DataKeys.HANDSHAKE_LIST_ELEMENT_PREFIX + String.valueOf(i), gson.toJson(handshakes.get(i)));
-                    }
-                    return ListenableWorker.Result.success(dataBuilder.build());
-                } catch (JsonSyntaxException | JsonIOException e) {
-                    Log.e(TAG, "Unable to parse gateway metadata!", e);
-                    errorCode = ERROR_PARSING;
-                } finally {
-                    connection.disconnect();
-                }
-            } catch (MalformedURLException e) {
-                Log.e(TAG, "Unable to parse uri: '" + hostString + "'!", e);
-                errorCode = ERROR_URI;
-            } catch (FileNotFoundException e) {
-                Log.i(TAG, "No handshakes found for: '" + defaultdentityString + "'!");
-                errorCode = ERROR_NOT_FOUND;
-            } catch (IOException e) {
-                Log.e(TAG, "Unable to open connection to: '" + hostString + "'!", e);
-                errorCode = ERROR_CONNECTION;
+
+            ArrayList<Handshake> handshakes = new ArrayList<>();
+
+            Pair<Integer, ArrayList<Handshake>> senderPair = fetchHandshakesSender(defaultdentityString, gatewayInfo);
+            Pair<Integer, ArrayList<Handshake>> receiverPair = fetchHandshakesReceiver(defaultdentityString, gatewayInfo);
+
+            Integer receiverRes = receiverPair.first;
+            Integer senderRes = senderPair.first;
+            if (!senderRes.equals(receiverRes)) {
+                Log.w(TAG, "Request results not the same, potential error might be skipped!");
             }
+
+            handshakes.addAll(senderPair.second);
+            handshakes.addAll(receiverPair.second);
+
+            Data.Builder dataBuilder = new Data.Builder().putInt(DataKeys.ERROR_CODE.toString(), pickGreater(senderRes, receiverRes));
+            dataBuilder.putInt(DataKeys.HANDSHAKE_LIST_SIZE.toString(), handshakes.size());
+            for (int i = 0; i < handshakes.size(); i++) {
+                dataBuilder.putString(DataKeys.HANDSHAKE_LIST_ELEMENT_PREFIX + String.valueOf(i), gson.toJson(handshakes.get(i)));
+            }
+            return ListenableWorker.Result.success(dataBuilder.build());
         }
-        return ListenableWorker.Result.failure(new Data.Builder().putInt(DataKeys.ERROR_CODE.toString(), errorCode).build());
+        return ListenableWorker.Result.failure(new Data.Builder().putInt(DataKeys.ERROR_CODE.toString(), -1).build());
+    }
+
+    /**
+     * Returns the greater of two integers. If equal the first one will eb returned.
+     *
+     * @param a first int
+     * @param b second int
+     * @return which ever int is greater or the first one if they are equal
+     */
+    private Integer pickGreater(Integer a, Integer b) {
+        if (a > b) {
+            return a;
+        } else if (a < b) {
+            return b;
+        } else {
+            return a;
+        }
+    }
+
+    private Pair<Integer, ArrayList<Handshake>> fetchHandshakesSender(String identityId, GatewayInfo gatewayInfo) {
+        try {
+            URL gatewayMetaUrl = new URL(gatewayInfo.toString() + "/handshakes/sender/" + identityId);
+            HttpURLConnection connection = (HttpURLConnection) gatewayMetaUrl.openConnection();
+            try (InputStream io = connection.getInputStream()) {
+                return new Pair<>(ERROR_NONE, gson.fromJson(new JsonReader(new InputStreamReader(io)), getHandshakeListType()));
+            } catch (JsonSyntaxException | JsonIOException e) {
+                Log.e(TAG, "Unable to parse gateway metadata!", e);
+                return new Pair<>(ERROR_PARSING, new ArrayList<>());
+            } finally {
+                connection.disconnect();
+            }
+        } catch (MalformedURLException e) {
+            Log.e(TAG, "Unable to parse uri!", e);
+            return new Pair<>(ERROR_URI, new ArrayList<>());
+        } catch (FileNotFoundException e) {
+            Log.i(TAG, "No handshakes found for: '" + identityId + "'!");
+            return new Pair<>(ERROR_NOT_FOUND, new ArrayList<>());
+        } catch (IOException e) {
+            Log.e(TAG, "Unable to open connection!", e);
+            return new Pair<>(ERROR_CONNECTION, new ArrayList<>());
+        }
+    }
+
+    private Pair<Integer, ArrayList<Handshake>> fetchHandshakesReceiver(String identityId, GatewayInfo gatewayInfo) {
+        try {
+            URL gatewayMetaUrl = new URL(gatewayInfo.toString() + "/handshakes/receiver/" + identityId);
+            HttpURLConnection connection = (HttpURLConnection) gatewayMetaUrl.openConnection();
+            try (InputStream io = connection.getInputStream()) {
+                return new Pair<>(ERROR_NONE, gson.fromJson(new JsonReader(new InputStreamReader(io)), getHandshakeListType()));
+            } catch (JsonSyntaxException | JsonIOException e) {
+                Log.e(TAG, "Unable to parse gateway metadata!", e);
+                return new Pair<>(ERROR_PARSING, new ArrayList<>());
+            } finally {
+                connection.disconnect();
+            }
+        } catch (MalformedURLException e) {
+            Log.e(TAG, "Unable to parse uri!", e);
+            return new Pair<>(ERROR_URI, new ArrayList<>());
+        } catch (FileNotFoundException e) {
+            Log.i(TAG, "No handshakes found for: '" + identityId + "'!");
+            return new Pair<>(ERROR_NOT_FOUND, new ArrayList<>());
+        } catch (IOException e) {
+            Log.e(TAG, "Unable to open connection!", e);
+            return new Pair<>(ERROR_CONNECTION, new ArrayList<>());
+        }
     }
 
     private Type getHandshakeListType() {

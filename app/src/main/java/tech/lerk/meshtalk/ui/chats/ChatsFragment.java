@@ -15,7 +15,6 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProviders;
 import androidx.preference.PreferenceManager;
 
@@ -32,8 +31,9 @@ import tech.lerk.meshtalk.entities.Preferences;
 import tech.lerk.meshtalk.providers.ChatProvider;
 import tech.lerk.meshtalk.providers.ContactProvider;
 import tech.lerk.meshtalk.providers.MessageProvider;
+import tech.lerk.meshtalk.ui.UpdatableFragment;
 
-public class ChatsFragment extends Fragment {
+public class ChatsFragment extends UpdatableFragment {
 
     private ChatsViewModel chatsViewModel;
     private ChatProvider chatProvider;
@@ -90,7 +90,7 @@ public class ChatsFragment extends Fragment {
                                                     messages.forEach(id -> messageProvider.deleteById(id));
                                                 }
                                                 chatProvider.deleteById(chat.getId());
-                                                updateChats();
+                                                updateViews();
                                             }).create().show();
                                     return true;
                                 case R.id.action_redo_handshake:
@@ -121,12 +121,13 @@ public class ChatsFragment extends Fragment {
             };
             listView.setAdapter(adapter);
         });
-        updateChats();
+        updateViews();
 
         return root;
     }
 
-    private void updateChats() {
+    @Override
+    public void updateViews() {
         Set<Chat> chats = new TreeSet<>();
         chatProvider.getAllIds().forEach(id -> chats.add(chatProvider.getById(id)));
         chatsViewModel.setChats(chats);

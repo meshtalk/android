@@ -55,8 +55,9 @@ import tech.lerk.meshtalk.exceptions.DecryptionException;
 import tech.lerk.meshtalk.exceptions.EncryptionException;
 import tech.lerk.meshtalk.providers.ContactProvider;
 import tech.lerk.meshtalk.providers.IdentityProvider;
+import tech.lerk.meshtalk.ui.UpdatableFragment;
 
-public class IdentitiesFragment extends Fragment {
+public class IdentitiesFragment extends UpdatableFragment {
 
     private static final String TAG = IdentitiesFragment.class.getCanonicalName();
     private IdentitiesViewModel identitiesViewModel;
@@ -171,7 +172,7 @@ public class IdentitiesFragment extends Fragment {
             };
             listView.setAdapter(adapter);
         });
-        updateIdentities();
+        updateViews();
 
         FloatingActionButton fab = root.findViewById(R.id.new_identity_button);
         fab.setOnClickListener(view -> handleActionButtonClick());
@@ -195,7 +196,7 @@ public class IdentitiesFragment extends Fragment {
             d.dismiss();
         }
         preferences.edit().putString(Preferences.DEFAULT_IDENTITY.toString(), "").apply();
-        updateIdentities();
+        updateViews();
     }
 
     private void handleSetDefault(@Nullable DialogInterface d, UUID id) {
@@ -203,10 +204,11 @@ public class IdentitiesFragment extends Fragment {
             d.dismiss();
         }
         preferences.edit().putString(Preferences.DEFAULT_IDENTITY.toString(), id.toString()).apply();
-        updateIdentities();
+        updateViews();
     }
 
-    private void updateIdentities() {
+    @Override
+    public void updateViews() {
         Set<Identity> identities = new TreeSet<>();
         identityProvider.getAllIds().forEach(id -> {
             try {
@@ -294,7 +296,7 @@ public class IdentitiesFragment extends Fragment {
 
                 requireActivity().runOnUiThread(() -> {
                     loadingDialog.get().dismiss();
-                    updateIdentities();
+                    updateViews();
                 });
             } catch (NoSuchAlgorithmException | EncryptionException e) {
                 requireActivity().runOnUiThread(() -> loadingDialog.get().dismiss());
