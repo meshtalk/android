@@ -40,4 +40,7 @@ public interface MessageDao {
 
     @Query("delete from message where id = :id")
     void deleteMessageById(UUID id);
+
+    @Query("delete from message where 1 = 1")
+    void deleteAll();
 }

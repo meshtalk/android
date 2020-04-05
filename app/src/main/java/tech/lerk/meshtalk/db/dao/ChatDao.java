@@ -17,13 +17,13 @@ public interface ChatDao {
     @Query("select * from chat")
     List<ChatDbo> getChats();
 
-    @Query("select * from chat where id == :id")
+    @Query("select * from chat where id = :id")
     ChatDbo getChatById(UUID id);
 
-    @Query("select * from chat where sender == :senderId")
+    @Query("select * from chat where sender = :senderId")
     ChatDbo getChatBySender(UUID senderId);
 
-    @Query("select * from chat where recipient == :recipientId")
+    @Query("select * from chat where recipient = :recipientId")
     ChatDbo getChatByRecipient(UUID recipientId);
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -35,6 +35,9 @@ public interface ChatDao {
     @Delete
     void deleteChat(ChatDbo chat);
 
-    @Query("delete from chat where id == :id")
+    @Query("delete from chat where id = :id")
     void deleteChatbyId(UUID id);
+
+    @Query("delete from chat where 1 = 1")
+    void deleteAll();
 }

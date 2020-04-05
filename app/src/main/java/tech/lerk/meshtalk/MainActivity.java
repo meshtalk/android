@@ -240,9 +240,9 @@ public class MainActivity extends AppCompatActivity {
 
     private void noIdentitiesCheckpoint() {
         AppExecutors.getInstance().diskIO().execute(() ->
-                IdentityProvider.get(getApplicationContext()).getAllIds(iids ->
+                IdentityProvider.get(getApplicationContext()).getAll(ids ->
                         MainActivity.this.runOnUiThread(() -> {
-                            if (iids.size() < 1) {
+                            if (ids.size() < 1) {
                                 navController.navigate(R.id.nav_item_identities);
                             } else {
                                 updateNavHeader();

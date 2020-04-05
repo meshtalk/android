@@ -50,7 +50,6 @@ import tech.lerk.meshtalk.R;
 import tech.lerk.meshtalk.Stuff;
 import tech.lerk.meshtalk.entities.Identity;
 import tech.lerk.meshtalk.entities.Preferences;
-import tech.lerk.meshtalk.exceptions.DecryptionException;
 import tech.lerk.meshtalk.exceptions.EncryptionException;
 import tech.lerk.meshtalk.providers.impl.ContactProvider;
 import tech.lerk.meshtalk.providers.impl.IdentityProvider;
@@ -176,7 +175,7 @@ public class IdentitiesFragment extends UpdatableFragment {
         FloatingActionButton fab = root.findViewById(R.id.new_identity_button);
         fab.setOnClickListener(view -> handleActionButtonClick());
 
-        AsyncTask.execute(() -> IdentityProvider.get(requireContext()).getAllIds(ids -> {
+        AsyncTask.execute(() -> IdentityProvider.get(requireContext()).getAll(ids -> {
             if (ids.size() < 1) {
                 Objects.requireNonNull(getActivity()).runOnUiThread(() ->
                         new androidx.appcompat.app.AlertDialog.Builder(requireContext())
@@ -213,16 +212,7 @@ public class IdentitiesFragment extends UpdatableFragment {
     public void updateViews() {
         AsyncTask.execute(() -> {
             Set<Identity> identities = new TreeSet<>();
-            identityProvider.getAllIds(ids -> ids.forEach(id -> {
-                try {
-                    //TODO: this is now very probably buggy!
-                    identityProvider.getById(id, identities::add);
-                } catch (DecryptionException e) {
-                    String msg = "Unable to decrypt identity: '" + id + "'!";
-                    Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show();
-                    Log.e(TAG, msg, e);
-                }
-            }));
+            identityProvider.getAll(identities::addAll);
             Objects.requireNonNull(getActivity()).runOnUiThread(() -> identitiesViewModel.setIdentities(identities));
         });
     }

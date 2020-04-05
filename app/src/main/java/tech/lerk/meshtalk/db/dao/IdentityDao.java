@@ -17,7 +17,7 @@ public interface IdentityDao {
     @Query("select * from identity")
     List<IdentityDbo> getIdentities();
 
-    @Query("select * from identity where id == :id")
+    @Query("select * from identity where id = :id")
     IdentityDbo getIdentityById(UUID id);
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -29,6 +29,9 @@ public interface IdentityDao {
     @Delete
     void deleteIdentity(IdentityDbo identity);
 
-    @Query("delete from identity where id == :id")
+    @Query("delete from identity where id = :id")
     void deleteIdentityById(UUID id);
+
+    @Query("delete from identity where 1 = 1")
+    void deleteAll();
 }

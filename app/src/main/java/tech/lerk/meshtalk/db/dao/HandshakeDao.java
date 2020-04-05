@@ -37,4 +37,7 @@ public interface HandshakeDao {
 
     @Delete
     void deleteHandshake(HandshakeDbo handshake);
+
+    @Query("delete from handshake where 1 = 1")
+    void deleteAll();
 }

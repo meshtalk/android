@@ -2,6 +2,8 @@ package tech.lerk.meshtalk.providers.impl;
 
 import android.content.Context;
 
+import androidx.annotation.NonNull;
+
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
@@ -10,7 +12,6 @@ import java.util.stream.Collectors;
 import tech.lerk.meshtalk.Utils;
 import tech.lerk.meshtalk.db.DatabaseEntityConverter;
 import tech.lerk.meshtalk.entities.Contact;
-import tech.lerk.meshtalk.entities.db.ContactDbo;
 import tech.lerk.meshtalk.providers.DatabaseProvider;
 
 public class ContactProvider extends DatabaseProvider<Contact> {
@@ -36,7 +37,7 @@ public class ContactProvider extends DatabaseProvider<Contact> {
     }
 
     @Override
-    public void getById(UUID id, LookupCallback<Contact> callback) {
+    public void getById(UUID id, @NonNull LookupCallback<Contact> callback) {
         callback.call(DatabaseEntityConverter.convert(database.contactDao().getContactById(id)));
     }
 
@@ -51,13 +52,24 @@ public class ContactProvider extends DatabaseProvider<Contact> {
     }
 
     @Override
-    public void exists(UUID id, LookupCallback<Boolean> callback) {
+    public void delete(Contact element) {
+        database.contactDao().deleteContact(DatabaseEntityConverter.convert(element));
+    }
+
+    @Override
+    public void exists(UUID id, @NonNull LookupCallback<Boolean> callback) {
         callback.call(database.contactDao().getContacts().stream().anyMatch(c -> c.getId().equals(id)));
     }
 
     @Override
-    public void getAllIds(LookupCallback<Set<UUID>> callback) {
+    public void getAll(@NonNull LookupCallback<Set<Contact>> callback) {
         callback.call(database.contactDao().getContacts().stream()
-                .map(ContactDbo::getId).collect(Collectors.toCollection(TreeSet::new)));
+                .map(DatabaseEntityConverter::convert)
+                .collect(Collectors.toCollection(TreeSet::new)));
+    }
+
+    @Override
+    public void deleteAll() {
+        database.contactDao().deleteAll();
     }
 }

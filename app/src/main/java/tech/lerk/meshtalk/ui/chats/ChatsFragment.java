@@ -133,8 +133,7 @@ public class ChatsFragment extends UpdatableFragment {
     public void updateViews() {
         AsyncTask.execute(() -> {
             Set<Chat> chats = new TreeSet<>();
-            //TODO: this is now very probably buggy!
-            chatProvider.getAllIds(cids -> cids.forEach(id -> chatProvider.getById(id, chats::add)));
+            chatProvider.getAll(chats::addAll);
             Objects.requireNonNull(getActivity()).runOnUiThread(() -> chatsViewModel.setChats(chats));
         });
     }

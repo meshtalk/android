@@ -10,4 +10,6 @@ public abstract class DatabaseProvider<T> implements Provider<T> {
     protected DatabaseProvider(Context context) {
         database = MeshtalkDatabase.get(context);
     }
+
+    public abstract void deleteAll();
 }

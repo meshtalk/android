@@ -2,6 +2,8 @@ package tech.lerk.meshtalk.providers.impl;
 
 import android.content.Context;
 
+import androidx.annotation.NonNull;
+
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
@@ -9,7 +11,6 @@ import java.util.stream.Collectors;
 
 import tech.lerk.meshtalk.db.DatabaseEntityConverter;
 import tech.lerk.meshtalk.entities.Chat;
-import tech.lerk.meshtalk.entities.db.ChatDbo;
 import tech.lerk.meshtalk.providers.DatabaseProvider;
 
 public class ChatProvider extends DatabaseProvider<Chat> {
@@ -27,7 +28,7 @@ public class ChatProvider extends DatabaseProvider<Chat> {
     }
 
     @Override
-    public void getById(UUID id, LookupCallback<Chat> callback) {
+    public void getById(UUID id, @NonNull LookupCallback<Chat> callback) {
         callback.call(DatabaseEntityConverter.convert(database.chatDao().getChatById(id)));
     }
 
@@ -42,13 +43,24 @@ public class ChatProvider extends DatabaseProvider<Chat> {
     }
 
     @Override
-    public void exists(UUID id, LookupCallback<Boolean> callback) {
+    public void delete(Chat element) {
+        database.chatDao().deleteChat(DatabaseEntityConverter.convert(element));
+    }
+
+    @Override
+    public void exists(UUID id, @NonNull LookupCallback<Boolean> callback) {
         callback.call(database.chatDao().getChats().stream().anyMatch(c -> c.getId().equals(id)));
     }
 
     @Override
-    public void getAllIds(LookupCallback<Set<UUID>> callback) {
+    public void getAll(@NonNull LookupCallback<Set<Chat>> callback) {
         callback.call(database.chatDao().getChats().stream()
-                .map(ChatDbo::getId).collect(Collectors.toCollection(TreeSet::new)));
+                .map(DatabaseEntityConverter::convert)
+                .collect(Collectors.toCollection(TreeSet::new)));
+    }
+
+    @Override
+    public void deleteAll() {
+        database.chatDao().deleteAll();
     }
 }

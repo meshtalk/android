@@ -43,6 +43,7 @@ import im.delight.android.identicons.Identicon;
 import tech.lerk.meshtalk.MainActivity;
 import tech.lerk.meshtalk.R;
 import tech.lerk.meshtalk.Stuff;
+import tech.lerk.meshtalk.db.DatabaseEntityConverter;
 import tech.lerk.meshtalk.entities.Chat;
 import tech.lerk.meshtalk.entities.Contact;
 import tech.lerk.meshtalk.entities.Preferences;
@@ -243,8 +244,7 @@ public class ContactsFragment extends UpdatableFragment {
     public void updateViews() {
         AsyncTask.execute(() -> {
             Set<Contact> contacts = new TreeSet<>();
-            //TODO: this is now very probably buggy!
-            contactProvider.getAllIds(ids -> ids.forEach(id -> contactProvider.getById(id, contacts::add)));
+            contactProvider.getAll(contacts::addAll);
             Objects.requireNonNull(getActivity()).runOnUiThread(() -> contactsViewModel.setContacts(contacts));
         });
     }

@@ -3,6 +3,7 @@ package tech.lerk.meshtalk.ui.qr;
 import android.Manifest;
 import android.app.AlertDialog;
 import android.content.pm.PackageManager;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.widget.Toast;
 
@@ -15,6 +16,7 @@ import com.google.gson.Gson;
 import com.google.zxing.Result;
 
 import me.dm7.barcodescanner.zxing.ZXingScannerView;
+import tech.lerk.meshtalk.AppExecutors;
 import tech.lerk.meshtalk.R;
 import tech.lerk.meshtalk.Utils;
 import tech.lerk.meshtalk.entities.Contact;
@@ -86,7 +88,8 @@ public class QRCodeScanActivity extends AppCompatActivity {
                             scannerView.resumeCameraPreview(QRCodeResultHandler.this);
                         })
                         .setPositiveButton(R.string.action_add, (d, w) -> {
-                            ContactProvider.get(activity).save(contact);
+                            AppExecutors.getInstance().diskIO().execute(() ->
+                                    ContactProvider.get(activity).save(contact));
                             Toast.makeText(activity, R.string.success_decoding_contact, Toast.LENGTH_LONG).show();
                             activity.finish();
                         }).create().show();

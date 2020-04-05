@@ -1,6 +1,7 @@
 package tech.lerk.meshtalk.providers.impl;
 
 import android.content.Context;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 
@@ -18,6 +19,7 @@ import tech.lerk.meshtalk.exceptions.EncryptionException;
 import tech.lerk.meshtalk.providers.DatabaseProvider;
 
 public class IdentityProvider extends DatabaseProvider<Identity> {
+    private static final String TAG = IdentityProvider.class.getCanonicalName();
     private static IdentityProvider instance = null;
     private final KeyHolder keyHolder;
 
@@ -36,7 +38,7 @@ public class IdentityProvider extends DatabaseProvider<Identity> {
     @Override
     public void getById(UUID id, @NonNull LookupCallback<Identity> callback) throws DecryptionException {
         IdentityDbo identityById = database.identityDao().getIdentityById(id);
-        if(identityById == null) {
+        if (identityById == null) {
             callback.call(null);
         } else {
             callback.call(DatabaseEntityConverter.convert(identityById, keyHolder));
@@ -49,9 +51,17 @@ public class IdentityProvider extends DatabaseProvider<Identity> {
     }
 
     @Override
-    public void getAllIds(LookupCallback<Set<UUID>> callback) {
+    public void getAll(@NonNull LookupCallback<Set<Identity>> callback) {
         callback.call(database.identityDao().getIdentities().stream()
-                .map(IdentityDbo::getId).collect(Collectors.toCollection(TreeSet::new)));
+                .map(idbo -> {
+                    try {
+                        return DatabaseEntityConverter.convert(idbo, keyHolder);
+                    } catch (DecryptionException e) {
+                        Log.e(TAG, "Unable to decrypt identity!", e);
+                        return null;
+                    }
+                })
+                .collect(Collectors.toCollection(TreeSet::new)));
     }
 
     @Override
@@ -60,7 +70,21 @@ public class IdentityProvider extends DatabaseProvider<Identity> {
     }
 
     @Override
-    public void exists(UUID id, LookupCallback<Boolean> callback) {
+    public void delete(Identity element) {
+        try {
+            database.identityDao().deleteIdentity(DatabaseEntityConverter.convert(element, keyHolder));
+        } catch (EncryptionException e) {
+            Log.e(TAG, "Unable to encrypt identity!", e);
+        }
+    }
+
+    @Override
+    public void exists(UUID id, @NonNull LookupCallback<Boolean> callback) {
         callback.call(database.identityDao().getIdentities().stream().anyMatch(i -> i.getId().equals(id)));
+    }
+
+    @Override
+    public void deleteAll() {
+        database.identityDao().deleteAll();
     }
 }

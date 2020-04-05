@@ -3,6 +3,8 @@ package tech.lerk.meshtalk.providers.impl;
 import android.content.Context;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -35,6 +37,11 @@ public class MessageProvider extends DatabaseProvider<Message> {
         identityProvider = IdentityProvider.get(context);
     }
 
+    @Override
+    public void deleteAll() {
+        database.messageDao().deleteAll();
+    }
+
     public static MessageProvider get(Context context) {
         if (instance == null) {
             instance = new MessageProvider(context);
@@ -43,7 +50,7 @@ public class MessageProvider extends DatabaseProvider<Message> {
     }
 
     @Override
-    public void getById(UUID id, LookupCallback<Message> callback) {
+    public void getById(UUID id, @NonNull LookupCallback<Message> callback) {
         callback.call(DatabaseEntityConverter.convert(database.messageDao().getMessageById(id)));
     }
 
@@ -58,14 +65,20 @@ public class MessageProvider extends DatabaseProvider<Message> {
     }
 
     @Override
-    public void exists(UUID id, LookupCallback<Boolean> callback) {
+    public void delete(Message element) {
+        database.messageDao().deleteMessage(DatabaseEntityConverter.convert(element));
+    }
+
+    @Override
+    public void exists(UUID id, @NonNull LookupCallback<Boolean> callback) {
         callback.call(database.messageDao().getMessages().stream().anyMatch(m -> m.getId().equals(id)));
     }
 
     @Override
-    public void getAllIds(LookupCallback<Set<UUID>> callback) {
+    public void getAll(@NonNull LookupCallback<Set<Message>> callback) {
         callback.call(database.messageDao().getMessages().stream()
-                .map(MessageDbo::getId).collect(Collectors.toCollection(TreeSet::new)));
+                .map(DatabaseEntityConverter::convert)
+                .collect(Collectors.toCollection(TreeSet::new)));
     }
 
     public Message getLatestMessage(Chat chat) {

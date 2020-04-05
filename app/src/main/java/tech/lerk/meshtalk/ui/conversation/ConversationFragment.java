@@ -228,7 +228,7 @@ public class ConversationFragment extends UpdatableFragment {
     @Override
     public void updateViews() {
         checkForHandshake();
-        messageProvider.getAllIds(messageIds ->
-                conversationViewModel.setMessages(messageIds, currentChat, requireContext()));
+        messageProvider.getAll(ms ->
+                conversationViewModel.setMessages(ms, currentChat, requireContext()));
     }
 }

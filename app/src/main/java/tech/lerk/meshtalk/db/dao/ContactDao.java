@@ -29,6 +29,9 @@ public interface ContactDao {
     @Delete
     void deleteContact(ContactDbo contact);
 
-    @Query("delete from contact where id == :id")
+    @Query("delete from contact where id = :id")
     void deleteContactById(UUID id);
+
+    @Query("delete from contact where 1 = 1")
+    void deleteAll();
 }

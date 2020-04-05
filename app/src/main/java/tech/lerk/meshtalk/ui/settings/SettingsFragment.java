@@ -71,28 +71,28 @@ public class SettingsFragment extends PreferenceFragmentCompat {
                 loadingTextView.setText(R.string.progress_self_destruct_deleting_contacts);
             });
             ContactProvider contactProvider = ContactProvider.get(requireContext());
-            contactProvider.getAllIds(uids -> uids.forEach(contactProvider::deleteById));
+            contactProvider.deleteAll();
             waitOrDonT(200);
             requireActivity().runOnUiThread(() -> {
                 progressBar.setProgress(10, true);
                 loadingTextView.setText(R.string.progress_self_destruct_deleting_messages);
             });
             MessageProvider messageProvider = MessageProvider.get(requireContext());
-            messageProvider.getAllIds(mids -> mids.forEach(messageProvider::deleteById));
+            messageProvider.deleteAll();
             waitOrDonT(200);
             requireActivity().runOnUiThread(() -> {
                 progressBar.setProgress(20, true);
                 loadingTextView.setText(R.string.progress_self_destruct_deleting_chats);
             });
             ChatProvider chatProvider = ChatProvider.get(requireContext());
-            chatProvider.getAllIds(cids -> cids.forEach(chatProvider::deleteById));
+            chatProvider.deleteAll();
             waitOrDonT(200);
             requireActivity().runOnUiThread(() -> {
                 progressBar.setProgress(30, true);
                 loadingTextView.setText(R.string.progress_self_destruct_deleting_identities);
             });
             IdentityProvider identityProvider = IdentityProvider.get(requireContext());
-            identityProvider.getAllIds(iids -> iids.forEach(identityProvider::deleteById));
+            identityProvider.deleteAll();
             waitOrDonT(200);
             requireActivity().runOnUiThread(() -> {
                 progressBar.setProgress(40, true);
