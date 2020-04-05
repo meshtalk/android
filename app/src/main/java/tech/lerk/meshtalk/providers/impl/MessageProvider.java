@@ -6,6 +6,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -20,7 +21,7 @@ import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
+import javax.crypto.spec.GCMParameterSpec;
 
 import tech.lerk.meshtalk.Callback;
 import tech.lerk.meshtalk.MessagesService;
@@ -98,32 +99,41 @@ public class MessageProvider extends DatabaseProvider<Message> {
     }
 
     public void decryptMessage(@NonNull String message, @NonNull Chat chat, @NonNull Callback<String> callback) {
+
         if (!message.isEmpty()) {
             Handshake handshake = chat.getHandshakes().get(chat.getSender());
             if (handshake != null) {
-                decryptHandshake(chat, chatKey -> {
-                    try {
-                        if (chatKey != null) {
-                            Cipher c = Cipher.getInstance(Stuff.AES_MODE);
-                            c.init(Cipher.DECRYPT_MODE, chatKey);
-                            byte[] decodedBytes = c.doFinal(Base64.getMimeDecoder().decode(message));
-                            callback.call(new String(decodedBytes, StandardCharsets.UTF_8));
+                try {
+                    identityProvider.getById(chat.getSender(), identity -> {
+                        if (identity != null) {
+                            SecretKey chatKey = MessagesService.getSecretKeyFromHandshake(handshake, identity);
+                            byte[] chatIv = MessagesService.getIvFromHandshake(handshake, identity);
+                            try {
+                                if (chatKey != null) {
+                                    Cipher c = Cipher.getInstance(Stuff.AES_MODE);
+                                    c.init(Cipher.DECRYPT_MODE, chatKey, new GCMParameterSpec(128, chatIv));
+                                    byte[] decodedBytes = c.doFinal(Base64.getMimeDecoder().decode(message));
+                                    callback.call(new String(decodedBytes, StandardCharsets.UTF_8));
+                                } else {
+                                    Log.e(TAG, "ChatKey is null!");
+                                }
+                            } catch (NoSuchPaddingException | NoSuchAlgorithmException e) {
+                                Log.wtf(TAG, "Unable to load cipher!", e);
+                            } catch (InvalidKeyException | InvalidAlgorithmParameterException e) {
+                                Log.e(TAG, "Unable to init cipher!", e);
+                            } catch (BadPaddingException | IllegalBlockSizeException e) {
+                                Log.e(TAG, "Unable to decrypt message!", e);
+                            }
                         } else {
-                            Log.e(TAG, "ChatKey is null!");
+                            Log.e(TAG, "Identity is null!");
                         }
-                    } catch (NoSuchPaddingException | NoSuchAlgorithmException e) {
-                        Log.wtf(TAG, "Unable to load cipher!", e);
-                    } catch (InvalidKeyException e) {
-                        Log.e(TAG, "Unable to init cipher!", e);
-                    } catch (BadPaddingException | IllegalBlockSizeException e) {
-                        Log.e(TAG, "Unable to decrypt message!", e);
-                    }
-                });
+                    });
+                } catch (DecryptionException e) {
+                    Log.e(TAG, "Unable to decrypt identity!", e);
+                }
             } else {
                 throw new IllegalStateException("No handshake for chatId: '" + chat.getId() + "'");
             }
-        } else {
-            Log.e(TAG, "Message is empty!");
         }
     }
 
@@ -131,46 +141,37 @@ public class MessageProvider extends DatabaseProvider<Message> {
         if (!message.isEmpty()) {
             Handshake handshake = chat.getHandshakes().get(chat.getSender());
             if (handshake != null) {
-                decryptHandshake(chat, chatKey -> {
-                    try {
-                        if (chatKey != null) {
-                            Cipher c = Cipher.getInstance(Stuff.AES_MODE);
-                            c.init(Cipher.ENCRYPT_MODE, chatKey);
-                            byte[] encodedBytes = c.doFinal(message.getBytes(StandardCharsets.UTF_8));
-                            callback.call(Base64.getMimeEncoder().encodeToString(encodedBytes));
+                try {
+                    identityProvider.getById(chat.getSender(), identity -> {
+                        if (identity != null) {
+                            SecretKey chatKey = MessagesService.getSecretKeyFromHandshake(handshake, identity);
+                            byte[] chatIv = MessagesService.getIvFromHandshake(handshake, identity);
+                            try {
+                                if (chatKey != null) {
+                                    Cipher c = Cipher.getInstance(Stuff.AES_MODE);
+                                    c.init(Cipher.ENCRYPT_MODE, chatKey, new GCMParameterSpec(128, chatIv));
+                                    byte[] encodedBytes = c.doFinal(message.getBytes(StandardCharsets.UTF_8));
+                                    callback.call(Base64.getMimeEncoder().encodeToString(encodedBytes));
+                                } else {
+                                    Log.e(TAG, "ChatKey is null!");
+                                }
+                            } catch (NoSuchPaddingException | NoSuchAlgorithmException e) {
+                                Log.wtf(TAG, "Unable to load cipher!", e);
+                            } catch (InvalidKeyException | InvalidAlgorithmParameterException e) {
+                                Log.e(TAG, "Unable to init cipher!", e);
+                            } catch (BadPaddingException | IllegalBlockSizeException e) {
+                                Log.e(TAG, "Unable to decrypt message!", e);
+                            }
                         } else {
-                            Log.e(TAG, "ChatKey is null!");
+                            Log.e(TAG, "Identity is null!");
                         }
-                    } catch (NoSuchPaddingException | NoSuchAlgorithmException e) {
-                        Log.wtf(TAG, "Unable to load cipher!", e);
-                    } catch (InvalidKeyException e) {
-                        Log.e(TAG, "Unable to init cipher!", e);
-                    } catch (BadPaddingException | IllegalBlockSizeException e) {
-                        Log.e(TAG, "Unable to decrypt message!", e);
-                    }
-                });
+                    });
+                } catch (DecryptionException e) {
+                    Log.e(TAG, "Unable to decrypt identity!", e);
+                }
             } else {
                 throw new IllegalStateException("No handshake for chatId: '" + chat.getId() + "'");
             }
-        }
-    }
-
-    private void decryptHandshake(@NonNull Chat chat, @NonNull Callback<SecretKey> callback) {
-        try {
-            identityProvider.getById(chat.getSender(), identity -> {
-                if (identity != null) {
-                    Handshake handshake = chat.getHandshakes().get(chat.getSender());
-                    if (handshake != null) {
-                        callback.call(MessagesService.getSecretKeyFromHandshake(handshake, identity));
-                    } else {
-                        throw new IllegalStateException("Handshake is null for chatId: '" + chat.getId() + "'!");
-                    }
-                } else {
-                    Log.e(TAG, "Identity is null!");
-                }
-            });
-        } catch (DecryptionException e) {
-            Log.e(TAG, "Unable to decrypt identity!", e);
         }
     }
 }

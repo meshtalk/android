@@ -90,8 +90,10 @@ public class ChatsFragment extends UpdatableFragment {
                                                 if (messages != null) {
                                                     messages.forEach(id -> messageProvider.deleteById(id));
                                                 }
-                                                chatProvider.deleteById(chat.getId());
-                                                updateViews();
+                                                AsyncTask.execute(() -> {
+                                                    chatProvider.deleteById(chat.getId());
+                                                    updateViews();
+                                                });
                                             }).create().show();
                                     return true;
                                 case R.id.action_redo_handshake:

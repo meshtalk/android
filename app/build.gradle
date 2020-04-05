@@ -47,7 +47,7 @@ dependencies {
 
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
-    implementation 'tech.lerk.meshtalk:meshtalk-core:2.1.0'
+    implementation 'tech.lerk.meshtalk:meshtalk-core:2.2.0'
     implementation 'androidx.work:work-runtime:2.3.4'
     implementation 'androidx.work:work-gcm:2.3.4'
     implementation 'androidx.appcompat:appcompat:1.1.0'

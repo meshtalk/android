@@ -21,6 +21,7 @@ public enum DataKeys {
     HANDSHAKE_CHAT("chat"),
     HANDSHAKE_DATE("date"),
     HANDSHAKE_KEY("key"),
+    HANDSHAKE_IV("iv"),
     // MESSAGE LIST
     MESSAGE_LIST_SIZE("message_list_size"),
     MESSAGE_LIST_ELEMENT_PREFIX("message_list_elem_"),

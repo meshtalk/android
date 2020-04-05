@@ -16,7 +16,6 @@ import androidx.work.Data;
 import androidx.work.NetworkType;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
-import tech.lerk.meshtalk.Callback;
 
 import com.google.gson.Gson;
 
@@ -40,7 +39,6 @@ import tech.lerk.meshtalk.entities.Handshake;
 import tech.lerk.meshtalk.entities.Identity;
 import tech.lerk.meshtalk.entities.Preferences;
 import tech.lerk.meshtalk.exceptions.DecryptionException;
-import tech.lerk.meshtalk.providers.Provider;
 import tech.lerk.meshtalk.providers.impl.ChatProvider;
 import tech.lerk.meshtalk.providers.impl.ContactProvider;
 import tech.lerk.meshtalk.providers.impl.IdentityProvider;
@@ -152,6 +150,7 @@ public class MessagesService extends LifecycleService {
                                         handshakeReply.setReceiver(chat.getRecipient());
                                         handshakeReply.setSender(chat.getSender());
                                         handshakeReply.setKey(Base64.getMimeEncoder().encodeToString(cipher.doFinal(secretKey.getEncoded())));
+                                        handshakeReply.setIv(Base64.getEncoder().encodeToString(cipher.doFinal(getIvFromHandshake(handshake, handshakeIdentity))));
                                         handshakeReply.setDate(LocalDateTime.now());
 
                                         HashMap<UUID, Handshake> handshakes1 = chat.getHandshakes();
@@ -166,6 +165,7 @@ public class MessagesService extends LifecycleService {
                                                 .putString(DataKeys.HANDSHAKE_RECEIVER.toString(), handshakeReply.getReceiver().toString())
                                                 .putString(DataKeys.HANDSHAKE_DATE.toString(), handshakeReply.getDate().toString())
                                                 .putString(DataKeys.HANDSHAKE_KEY.toString(), handshakeReply.getKey())
+                                                .putString(DataKeys.HANDSHAKE_IV.toString(), handshakeReply.getIv())
                                                 .build();
 
                                         OneTimeWorkRequest sendHandshakeWorkRequest = new OneTimeWorkRequest.Builder(SubmitHandshakeWorker.class)
@@ -283,6 +283,19 @@ public class MessagesService extends LifecycleService {
             cipher.init(Cipher.DECRYPT_MODE, identity.getPrivateKey());
             byte[] decryptedKey = cipher.doFinal(Base64.getMimeDecoder().decode(handshake.getKey()));
             return new SecretKeySpec(decryptedKey, "AES");
+        } catch (NoSuchAlgorithmException | InvalidKeyException |
+                NoSuchPaddingException | BadPaddingException | IllegalBlockSizeException e) {
+            Log.e(TAG, "Unable to decrypt handshake '" + handshake.getId() + "' with identity '" + identity.getId() + "'");
+        }
+        return null;
+    }
+
+    @Nullable
+    public static byte[] getIvFromHandshake(Handshake handshake, Identity identity) {
+        try {
+            Cipher cipher = Cipher.getInstance("RSA");
+            cipher.init(Cipher.DECRYPT_MODE, identity.getPrivateKey());
+            return cipher.doFinal(Base64.getMimeDecoder().decode(handshake.getIv()));
         } catch (NoSuchAlgorithmException | InvalidKeyException |
                 NoSuchPaddingException | BadPaddingException | IllegalBlockSizeException e) {
             Log.e(TAG, "Unable to decrypt handshake '" + handshake.getId() + "' with identity '" + identity.getId() + "'");

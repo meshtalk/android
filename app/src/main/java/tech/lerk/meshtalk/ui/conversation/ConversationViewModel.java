@@ -1,5 +1,6 @@
 package tech.lerk.meshtalk.ui.conversation;
 
+import android.app.Activity;
 import android.content.Context;
 import android.os.AsyncTask;
 
@@ -30,14 +31,15 @@ public class ConversationViewModel extends ViewModel {
         return messages;
     }
 
-    public void setMessages(Set<Message> msgs, Chat chat, Context context) {
-        msgs.forEach(m -> buildMessage(chat, context, m, mdo -> {
+    public void setMessages(Set<Message> msgs, Chat chat, Activity activity) {
+        msgs.forEach(m -> buildMessage(chat, activity, m, mdo -> {
             Set<MessageDO> value = messages.getValue();
             if (value == null) {
                 value = new TreeSet<>();
             }
             value.add(mdo);
-            messages.setValue(value);
+            final Set<MessageDO> finalValue = value;
+            activity.runOnUiThread(() -> messages.setValue(finalValue));
         }));
     }
 

@@ -58,6 +58,7 @@ public class SubmitHandshakeWorker extends GatewayWorker {
                 handshake.setReceiver(UUID.fromString(getInputData().getString(DataKeys.HANDSHAKE_RECEIVER.toString())));
                 handshake.setDate(LocalDateTime.ofEpochSecond(getInputData().getLong(DataKeys.HANDSHAKE_DATE.toString(), 0), 0, ZoneOffset.UTC));
                 handshake.setKey(getInputData().getString(DataKeys.HANDSHAKE_KEY.toString()));
+                handshake.setIv(getInputData().getString(DataKeys.HANDSHAKE_IV.toString()));
 
                 byte[] jsonBytes = gson.toJson(handshake).getBytes(StandardCharsets.UTF_8);
                 try (OutputStream os = connection.getOutputStream()) {

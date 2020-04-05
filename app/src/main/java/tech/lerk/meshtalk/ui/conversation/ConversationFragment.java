@@ -24,8 +24,10 @@ import androidx.work.WorkManager;
 import com.stfalcon.chatkit.messages.MessagesList;
 import com.stfalcon.chatkit.messages.MessagesListAdapter;
 
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Base64;
@@ -125,7 +127,8 @@ public class ConversationFragment extends UpdatableFragment {
     private void sendMessage(String message, Chat chat, Callback<Boolean> callback) {
         AsyncTask.execute(() ->
                 Stuff.determineSelfId(chat.getSender(), chat.getRecipient(), identityProvider, selfId ->
-                        Stuff.determineOtherId(chat.getSender(), chat.getRecipient(), identityProvider, otherId ->
+                        Stuff.determineOtherId(chat.getSender(), chat.getRecipient(), identityProvider, otherId -> {
+                            if (selfId != null && otherId != null) {
                                 messageProvider.encryptMessage(message, chat, encryptedMessage -> {
                                     Data messageData = new Data.Builder()
                                             .putString(DataKeys.MESSAGE_ID.toString(), UUID.randomUUID().toString())
@@ -169,7 +172,11 @@ public class ConversationFragment extends UpdatableFragment {
                                                 }
                                             })
                                     );
-                                }))));
+                                });
+                            } else {
+                                throw new IllegalStateException("Unable to determine ids!");
+                            }
+                        })));
     }
 
     private void checkForHandshake() {
@@ -215,6 +222,7 @@ public class ConversationFragment extends UpdatableFragment {
                                                         handshake.setSender(selfId);
                                                         handshake.setKey(Base64.getMimeEncoder().encodeToString(cipher.doFinal(secretKey.getEncoded())));
                                                         handshake.setDate(LocalDateTime.now());
+                                                        handshake.setIv(generateChatIv());
 
                                                         HashMap<UUID, Handshake> handshakes2 = currentChat.getHandshakes();
                                                         handshakes2.put(otherId, handshake);
@@ -228,6 +236,7 @@ public class ConversationFragment extends UpdatableFragment {
                                                                 .putString(DataKeys.HANDSHAKE_RECEIVER.toString(), handshake.getReceiver().toString())
                                                                 .putLong(DataKeys.HANDSHAKE_DATE.toString(), handshake.getDate().toEpochSecond(ZoneOffset.UTC))
                                                                 .putString(DataKeys.HANDSHAKE_KEY.toString(), handshake.getKey())
+                                                                .putString(DataKeys.HANDSHAKE_IV.toString(), handshake.getIv())
                                                                 .build();
 
                                                         OneTimeWorkRequest sendHandshakeWorkRequest = new OneTimeWorkRequest.Builder(SubmitHandshakeWorker.class)
@@ -287,16 +296,24 @@ public class ConversationFragment extends UpdatableFragment {
                 }));
     }
 
+    private String generateChatIv() {
+        byte[] array = new byte[12];
+        new SecureRandom().nextBytes(array);
+        return new String(array, StandardCharsets.UTF_8);
+    }
+
     @Override
     public void updateViews() {
         if (currentChat != null) {
             checkForHandshake();
             AsyncTask.execute(() ->
-                    messageProvider.getAll(ms ->
+                    messageProvider.getAll(ms -> {
+                        if (ms != null) {
                             requireActivity().runOnUiThread(() ->
-                                    conversationViewModel.setMessages(ms, currentChat, requireContext())
-                            )
-                    )
+                                    conversationViewModel.setMessages(ms, currentChat, requireActivity())
+                            );
+                        }
+                    })
             );
         }
     }
