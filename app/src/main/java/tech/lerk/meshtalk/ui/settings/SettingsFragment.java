@@ -37,6 +37,7 @@ public class SettingsFragment extends PreferenceFragmentCompat {
         Preference selfDestructPreference = Objects.requireNonNull(findPreference(Preferences.SELF_DESTRUCT.toString()));
         selfDestructPreference.setOnPreferenceClickListener(preference -> {
             if (selfDestructClickCount == 2) {
+                selfDestructClickCount = 0;
                 AlertDialog dialog = new AlertDialog.Builder(requireContext())
                         .setTitle(R.string.pref_title_self_destruct)
                         .setMessage(R.string.pref_dialog_self_destruct)
