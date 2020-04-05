@@ -9,6 +9,7 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import tech.lerk.meshtalk.Callback;
 import tech.lerk.meshtalk.db.DatabaseEntityConverter;
 import tech.lerk.meshtalk.entities.Chat;
 import tech.lerk.meshtalk.providers.DatabaseProvider;
@@ -28,7 +29,7 @@ public class ChatProvider extends DatabaseProvider<Chat> {
     }
 
     @Override
-    public void getById(UUID id, @NonNull LookupCallback<Chat> callback) {
+    public void getById(UUID id, @NonNull Callback<Chat> callback) {
         callback.call(DatabaseEntityConverter.convert(database.chatDao().getChatById(id)));
     }
 
@@ -48,12 +49,12 @@ public class ChatProvider extends DatabaseProvider<Chat> {
     }
 
     @Override
-    public void exists(UUID id, @NonNull LookupCallback<Boolean> callback) {
+    public void exists(UUID id, @NonNull Callback<Boolean> callback) {
         callback.call(database.chatDao().getChats().stream().anyMatch(c -> c.getId().equals(id)));
     }
 
     @Override
-    public void getAll(@NonNull LookupCallback<Set<Chat>> callback) {
+    public void getAll(@NonNull Callback<Set<Chat>> callback) {
         callback.call(database.chatDao().getChats().stream()
                 .map(DatabaseEntityConverter::convert)
                 .collect(Collectors.toCollection(TreeSet::new)));

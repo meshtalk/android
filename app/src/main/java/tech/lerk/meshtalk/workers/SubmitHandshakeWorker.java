@@ -23,7 +23,6 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.Objects;
 import java.util.UUID;
 
 import tech.lerk.meshtalk.Utils;
@@ -73,7 +72,7 @@ public class SubmitHandshakeWorker extends GatewayWorker {
                         result.append(s);
                         s = reader.readLine();
                     }
-                    String r = result.toString();
+                    String r = result.toString(); //TODO: remove debug stuff when no longer needed
                     return ListenableWorker.Result.success(new Data.Builder()
                             .putInt(DataKeys.ERROR_CODE.toString(), errorCode)
                             .build());

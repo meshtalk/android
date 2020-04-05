@@ -29,6 +29,7 @@ import im.delight.android.identicons.Identicon;
 import tech.lerk.meshtalk.MainActivity;
 import tech.lerk.meshtalk.R;
 import tech.lerk.meshtalk.entities.Chat;
+import tech.lerk.meshtalk.entities.Message;
 import tech.lerk.meshtalk.entities.Preferences;
 import tech.lerk.meshtalk.providers.impl.ChatProvider;
 import tech.lerk.meshtalk.providers.impl.ContactProvider;
@@ -39,13 +40,11 @@ public class ChatsFragment extends UpdatableFragment {
 
     private ChatsViewModel chatsViewModel;
     private ChatProvider chatProvider;
-    private ContactProvider contactProvider;
     private MessageProvider messageProvider;
 
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         chatsViewModel = ViewModelProviders.of(this).get(ChatsViewModel.class);
         chatProvider = ChatProvider.get(requireContext());
-        contactProvider = ContactProvider.get(requireContext());
         messageProvider = MessageProvider.get(requireContext());
 
         View root = inflater.inflate(R.layout.fragment_chats, container, false);
@@ -70,7 +69,7 @@ public class ChatsFragment extends UpdatableFragment {
                     }
                     Identicon identicon = v.findViewById(R.id.list_item_chat_identicon);
                     TextView title = v.findViewById(R.id.list_item_chat_title_label);
-                    TextView latestMessage = v.findViewById(R.id.list_item_chat_latest_message_label);
+                    TextView latestMessageView = v.findViewById(R.id.list_item_chat_latest_message_label);
                     ImageButton menuToggle = v.findViewById(R.id.list_item_chat_menu_toggle);
                     final PopupMenu dropDownMenu = new PopupMenu(getContext(), menuToggle);
                     final Menu menu = dropDownMenu.getMenu();
@@ -111,11 +110,20 @@ public class ChatsFragment extends UpdatableFragment {
                         });
                         identicon.show(chat.getRecipient().toString());
                         title.setText(chat.getTitle());
-                        messageProvider.decryptMessage(messageProvider.getLatestMessage(chat), chat, latestMessageText -> {
-                            if (latestMessageText != null) {
-                                latestMessage.setText(latestMessageText);
+                        AsyncTask.execute(() -> {
+                            Message latestMessage = messageProvider.getLatestMessage(chat);
+                            if (latestMessage != null) {
+                                messageProvider.decryptMessage(latestMessage.getContent(), chat, latestMessageText -> {
+                                    requireActivity().runOnUiThread(() -> {
+                                        if (latestMessageText != null) {
+                                            latestMessageView.setText(latestMessageText);
+                                        } else {
+                                            latestMessageView.setText(R.string.error_unable_to_decrypt_message);
+                                        }
+                                    });
+                                });
                             } else {
-                                latestMessage.setText(R.string.no_messages);
+                                requireActivity().runOnUiThread(() -> latestMessageView.setText(R.string.no_messages));
                             }
                         });
                     }

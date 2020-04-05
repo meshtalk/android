@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.os.AsyncTask;
 import android.util.Log;
+import tech.lerk.meshtalk.Callback;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
@@ -66,7 +67,7 @@ public class Stuff {
         return reducedIV;
     }
 
-    public static void getUserDO(UUID uuid, Context context, Provider.LookupCallback<UserDO> callback) {
+    public static void getUserDO(UUID uuid, Context context, Callback<UserDO> callback) {
         ContactProvider contactProvider = ContactProvider.get(context);
         IdentityProvider identityProvider = IdentityProvider.get(context);
         try {
@@ -88,7 +89,7 @@ public class Stuff {
         }
     }
 
-    public static void determineSelfId(UUID sender, UUID recipient, IdentityProvider identityProvider, Provider.LookupCallback<UUID> callback) {
+    public static void determineSelfId(UUID sender, UUID recipient, IdentityProvider identityProvider, Callback<UUID> callback) {
         AsyncTask.execute(() ->
                 identityProvider.exists(sender, e -> {
                     if (e) {
@@ -105,7 +106,7 @@ public class Stuff {
                 }));
     }
 
-    public static void determineOtherId(UUID sender, UUID recipient, IdentityProvider identityProvider, Provider.LookupCallback<UUID> callback) {
+    public static void determineOtherId(UUID sender, UUID recipient, IdentityProvider identityProvider, Callback<UUID> callback) {
         identityProvider.exists(sender, e -> {
             if (e) {
                 callback.call(recipient);

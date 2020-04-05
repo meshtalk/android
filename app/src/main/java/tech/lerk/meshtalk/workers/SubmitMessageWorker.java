@@ -12,15 +12,17 @@ import com.google.gson.Gson;
 import com.google.gson.JsonIOException;
 import com.google.gson.JsonSyntaxException;
 
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.sql.Time;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.Objects;
 import java.util.UUID;
 
 import tech.lerk.meshtalk.Utils;
@@ -55,11 +57,25 @@ public class SubmitMessageWorker extends GatewayWorker {
                 message.setDate(LocalDateTime.ofEpochSecond(getInputData().getLong(DataKeys.MESSAGE_DATE.toString(), 0), 0, ZoneOffset.UTC));
                 message.setContent(getInputData().getString(DataKeys.MESSAGE_CONTENT.toString()));
 
-                gson.toJson(message, new OutputStreamWriter(connection.getOutputStream()));
+                byte[] jsonBytes = gson.toJson(message).getBytes(StandardCharsets.UTF_8);
+                try (OutputStream os = connection.getOutputStream()) {
+                    os.write(jsonBytes, 0, jsonBytes.length);
+                    os.flush();
+                }
 
-                return ListenableWorker.Result.success(new Data.Builder()
-                        .putInt(DataKeys.ERROR_CODE.toString(), errorCode)
-                        .build());
+                try (InputStream inputStream = connection.getInputStream()) {
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8), 8);
+                    StringBuilder result = new StringBuilder();
+                    String s = reader.readLine();
+                    while (s != null) {
+                        result.append(s);
+                        s = reader.readLine();
+                    }
+                    String r = result.toString(); //TODO: remove debug stuff when no longer needed
+                    return ListenableWorker.Result.success(new Data.Builder()
+                            .putInt(DataKeys.ERROR_CODE.toString(), errorCode)
+                            .build());
+                }
             } catch (JsonSyntaxException | JsonIOException e) {
                 Log.e(TAG, "Unable to parse gateway metadata!", e);
                 errorCode = ERROR_PARSING;

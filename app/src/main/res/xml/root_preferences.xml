@@ -14,6 +14,14 @@
             app:title="@string/pref_title_ask_default_identity" />
     </PreferenceCategory>
 
+    <PreferenceCategory app:title="@string/pref_category_toasts">
+        <SwitchPreference
+            app:summary="@string/pref_summary_toast_message_sent"
+            app:title="@string/pref_title_toast_message_sent"
+            app:key="toast_message_sent"
+            app:defaultValue="true" />
+    </PreferenceCategory>
+
     <PreferenceCategory app:title="@string/pref_category_connection">
         <SwitchPreference
             app:defaultValue="true"

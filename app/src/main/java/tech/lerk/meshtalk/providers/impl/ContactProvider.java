@@ -9,6 +9,7 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import tech.lerk.meshtalk.Callback;
 import tech.lerk.meshtalk.Utils;
 import tech.lerk.meshtalk.db.DatabaseEntityConverter;
 import tech.lerk.meshtalk.entities.Contact;
@@ -37,7 +38,7 @@ public class ContactProvider extends DatabaseProvider<Contact> {
     }
 
     @Override
-    public void getById(UUID id, @NonNull LookupCallback<Contact> callback) {
+    public void getById(UUID id, @NonNull Callback<Contact> callback) {
         callback.call(DatabaseEntityConverter.convert(database.contactDao().getContactById(id)));
     }
 
@@ -57,12 +58,12 @@ public class ContactProvider extends DatabaseProvider<Contact> {
     }
 
     @Override
-    public void exists(UUID id, @NonNull LookupCallback<Boolean> callback) {
+    public void exists(UUID id, @NonNull Callback<Boolean> callback) {
         callback.call(database.contactDao().getContacts().stream().anyMatch(c -> c.getId().equals(id)));
     }
 
     @Override
-    public void getAll(@NonNull LookupCallback<Set<Contact>> callback) {
+    public void getAll(@NonNull Callback<Set<Contact>> callback) {
         callback.call(database.contactDao().getContacts().stream()
                 .map(DatabaseEntityConverter::convert)
                 .collect(Collectors.toCollection(TreeSet::new)));

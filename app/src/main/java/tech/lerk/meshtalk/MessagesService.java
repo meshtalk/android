@@ -16,6 +16,7 @@ import androidx.work.Data;
 import androidx.work.NetworkType;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
+import tech.lerk.meshtalk.Callback;
 
 import com.google.gson.Gson;
 
@@ -51,12 +52,10 @@ import tech.lerk.meshtalk.workers.SubmitHandshakeWorker;
 
 public class MessagesService extends LifecycleService {
     private static final String TAG = MessagesService.class.getCanonicalName();
-    private static final String FETCH_MESSAGES_TAG = "mt.fetch_messages";
-    private static final String FETCH_HANDSHAKES_TAG = "mt.fetch_handshakes";
 
     private SharedPreferences preferences;
     private Gson gson;
-    private KeyHolder keyHolder;
+
     private ChatProvider chatProvider;
     private ContactProvider contactProvider;
     private IdentityProvider identityProvider;
@@ -138,7 +137,7 @@ public class MessagesService extends LifecycleService {
         try {
             identityProvider.getById(handshake.getReceiver(), handshakeIdentity -> {
                 if (handshakeIdentity != null) {
-                    SecretKey secretKey = getSecretKey(handshake, handshakeIdentity);
+                    SecretKey secretKey = getSecretKeyFromHandshake(handshake, handshakeIdentity);
                     if (secretKey != null) {
                         try {
                             Cipher cipher = Cipher.getInstance("RSA");
@@ -268,7 +267,7 @@ public class MessagesService extends LifecycleService {
         AsyncTask.execute(() -> {
             for (int i = 0; i < data.getInt(DataKeys.HANDSHAKE_LIST_SIZE.toString(), 0); i++) {
                 Handshake handshake = gson.fromJson(data.getString(DataKeys.HANDSHAKE_LIST_ELEMENT_PREFIX + String.valueOf(i)), Handshake.class);
-                if(handshake != null) {
+                if (handshake != null) {
                     handleHandshake(handshake);
                 } else {
                     Log.e(TAG, "Handshake is null!");
@@ -278,7 +277,7 @@ public class MessagesService extends LifecycleService {
     }
 
     @Nullable
-    private SecretKey getSecretKey(Handshake handshake, Identity identity) {
+    public static SecretKey getSecretKeyFromHandshake(Handshake handshake, Identity identity) {
         try {
             Cipher cipher = Cipher.getInstance("RSA");
             cipher.init(Cipher.DECRYPT_MODE, identity.getPrivateKey());
@@ -291,7 +290,7 @@ public class MessagesService extends LifecycleService {
         return null;
     }
 
-    private void getChatName(UUID sender, Provider.LookupCallback<String> callback) {
+    private void getChatName(UUID sender, Callback<String> callback) {
         String title = "Chat with ";
         contactProvider.getById(sender, contact -> {
             if (contact == null) {
@@ -306,7 +305,6 @@ public class MessagesService extends LifecycleService {
     public void onCreate() {
         super.onCreate();
         gson = Utils.getGson();
-        keyHolder = KeyHolder.get(getApplicationContext());
         chatProvider = ChatProvider.get(getApplicationContext());
         contactProvider = ContactProvider.get(getApplicationContext());
         identityProvider = IdentityProvider.get(getApplicationContext());
@@ -317,9 +315,8 @@ public class MessagesService extends LifecycleService {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         super.onStartCommand(intent, flags, startId);
-        Toast.makeText(this, "service starting", Toast.LENGTH_SHORT).show();
-
-        boolean useMessageGateway = preferences.getBoolean(Preferences.USE_MESSAGE_GATEWAY.toString(), true);
+        boolean useMessageGateway = preferences
+                .getBoolean(Preferences.USE_MESSAGE_GATEWAY.toString(), true);
 
         if (useMessageGateway) {
             startFetchHandshakeWorker();
@@ -343,6 +340,5 @@ public class MessagesService extends LifecycleService {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        Toast.makeText(this, "service done", Toast.LENGTH_SHORT).show();
     }
 }

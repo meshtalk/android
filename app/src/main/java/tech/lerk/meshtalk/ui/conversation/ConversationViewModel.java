@@ -1,12 +1,15 @@
 package tech.lerk.meshtalk.ui.conversation;
 
 import android.content.Context;
+import android.os.AsyncTask;
 
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import java.util.Set;
 import java.util.TreeSet;
+
+import tech.lerk.meshtalk.Callback;
 
 import tech.lerk.meshtalk.Stuff;
 import tech.lerk.meshtalk.entities.Chat;
@@ -38,13 +41,14 @@ public class ConversationViewModel extends ViewModel {
         }));
     }
 
-    private void buildMessage(Chat chat, Context context, Message msg, Provider.LookupCallback<MessageDO> callback) {
+    private void buildMessage(Chat chat, Context context, Message msg, Callback<MessageDO> callback) {
         MessageProvider messageProvider = MessageProvider.get(context);
-        messageProvider.decryptMessage(msg, chat, messageText ->
-                Stuff.getUserDO(msg.getSender(), context, messageUser ->
-                        callback.call(new MessageDO(
-                                msg.getId().toString(),
-                                messageText,
-                                messageUser, msg.getDate()))));
+        AsyncTask.execute(() ->
+                messageProvider.decryptMessage(msg.getContent(), chat, messageText ->
+                        Stuff.getUserDO(msg.getSender(), context, messageUser ->
+                                callback.call(new MessageDO(
+                                        msg.getId().toString(),
+                                        messageText,
+                                        messageUser, msg.getDate())))));
     }
 }

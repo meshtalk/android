@@ -10,6 +10,7 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import tech.lerk.meshtalk.Callback;
 import tech.lerk.meshtalk.KeyHolder;
 import tech.lerk.meshtalk.db.DatabaseEntityConverter;
 import tech.lerk.meshtalk.entities.Identity;
@@ -36,7 +37,7 @@ public class IdentityProvider extends DatabaseProvider<Identity> {
     }
 
     @Override
-    public void getById(UUID id, @NonNull LookupCallback<Identity> callback) throws DecryptionException {
+    public void getById(UUID id, @NonNull Callback<Identity> callback) throws DecryptionException {
         IdentityDbo identityById = database.identityDao().getIdentityById(id);
         if (identityById == null) {
             callback.call(null);
@@ -51,7 +52,7 @@ public class IdentityProvider extends DatabaseProvider<Identity> {
     }
 
     @Override
-    public void getAll(@NonNull LookupCallback<Set<Identity>> callback) {
+    public void getAll(@NonNull Callback<Set<Identity>> callback) {
         callback.call(database.identityDao().getIdentities().stream()
                 .map(idbo -> {
                     try {
@@ -79,7 +80,7 @@ public class IdentityProvider extends DatabaseProvider<Identity> {
     }
 
     @Override
-    public void exists(UUID id, @NonNull LookupCallback<Boolean> callback) {
+    public void exists(UUID id, @NonNull Callback<Boolean> callback) {
         callback.call(database.identityDao().getIdentities().stream().anyMatch(i -> i.getId().equals(id)));
     }
 

@@ -157,4 +157,9 @@
     <string name="action_refresh">Refresh</string>
     <string name="service_desc_messages">Background service that fetches messages and handshakes.</string>
     <string name="service_label_messages">Messages Service</string>
+    <string name="success_sending_message">Message sent successfully!</string>
+    <string name="pref_category_toasts">Toasts</string>
+    <string name="pref_title_toast_message_sent">Toast on message sent</string>
+    <string name="pref_summary_toast_message_sent">If enabled, a Toast will be shown in case a message was sent successfully.</string>
+    <string name="error_unable_to_decrypt_message">Unable to decrypt message!</string>
 </resources>

@@ -1,6 +1,7 @@
 package tech.lerk.meshtalk.ui.conversation;
 
 import android.app.AlertDialog;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
@@ -39,6 +40,7 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 
+import tech.lerk.meshtalk.Callback;
 import tech.lerk.meshtalk.MainActivity;
 import tech.lerk.meshtalk.R;
 import tech.lerk.meshtalk.Stuff;
@@ -54,6 +56,7 @@ import tech.lerk.meshtalk.providers.impl.MessageProvider;
 import tech.lerk.meshtalk.ui.UpdatableFragment;
 import tech.lerk.meshtalk.workers.DataKeys;
 import tech.lerk.meshtalk.workers.SubmitHandshakeWorker;
+import tech.lerk.meshtalk.workers.SubmitMessageWorker;
 
 public class ConversationFragment extends UpdatableFragment {
 
@@ -64,6 +67,7 @@ public class ConversationFragment extends UpdatableFragment {
     private IdentityProvider identityProvider;
     private ContactProvider contactProvider;
     private ChatProvider chatProvider;
+    private SharedPreferences preferences;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -83,6 +87,7 @@ public class ConversationFragment extends UpdatableFragment {
         identityProvider = IdentityProvider.get(requireContext());
         contactProvider = ContactProvider.get(requireContext());
         chatProvider = ChatProvider.get(requireContext());
+        preferences = PreferenceManager.getDefaultSharedPreferences(requireContext().getApplicationContext());
 
         AlertDialog loadingDialog = Stuff.getLoadingDialog((MainActivity) requireActivity(), null);
         loadingDialog.show();
@@ -102,9 +107,11 @@ public class ConversationFragment extends UpdatableFragment {
                         messageET.setInputType(EditorInfo.TYPE_TEXT_FLAG_MULTI_LINE);
                         messageET.setOnEditorActionListener((v, actionId, event) -> {
                             if (actionId == EditorInfo.IME_ACTION_SEND) {
-                                //TODO: implement handshaking before implementing sending...
-                                Toast.makeText(requireContext(), "TODO: implement sending...", Toast.LENGTH_LONG).show();
-                                messageET.setText("");
+                                sendMessage(messageET.getText().toString(), c, success -> {
+                                    if (success != null && success) {
+                                        messageET.setText("");
+                                    }
+                                });
                             }
                             return false;
                         });
@@ -113,6 +120,56 @@ public class ConversationFragment extends UpdatableFragment {
                     });
                 }));
         return root;
+    }
+
+    private void sendMessage(String message, Chat chat, Callback<Boolean> callback) {
+        AsyncTask.execute(() ->
+                Stuff.determineSelfId(chat.getSender(), chat.getRecipient(), identityProvider, selfId ->
+                        Stuff.determineOtherId(chat.getSender(), chat.getRecipient(), identityProvider, otherId ->
+                                messageProvider.encryptMessage(message, chat, encryptedMessage -> {
+                                    Data messageData = new Data.Builder()
+                                            .putString(DataKeys.MESSAGE_ID.toString(), UUID.randomUUID().toString())
+                                            .putString(DataKeys.MESSAGE_CHAT.toString(), chat.getId().toString())
+                                            .putString(DataKeys.MESSAGE_SENDER.toString(), selfId.toString())
+                                            .putString(DataKeys.MESSAGE_RECEIVER.toString(), otherId.toString())
+                                            .putLong(DataKeys.MESSAGE_DATE.toString(), LocalDateTime.now().toEpochSecond(ZoneOffset.UTC))
+                                            .putString(DataKeys.MESSAGE_CONTENT.toString(), encryptedMessage)
+                                            .build();
+
+                                    OneTimeWorkRequest sendMessageWorkRequest = new OneTimeWorkRequest.Builder(SubmitMessageWorker.class)
+                                            .setInputData(messageData).build();
+                                    WorkManager workManager = WorkManager.getInstance(requireContext());
+                                    workManager.enqueue(sendMessageWorkRequest);
+
+                                    requireActivity().runOnUiThread(() ->
+                                            workManager.getWorkInfoByIdLiveData(sendMessageWorkRequest.getId()).observe(requireActivity(), info -> {
+                                                if (info != null && info.getState().isFinished()) {
+                                                    Data data = info.getOutputData();
+                                                    int errorCode = data.getInt(DataKeys.ERROR_CODE.toString(), -1);
+                                                    switch (errorCode) {
+                                                        case SubmitHandshakeWorker.ERROR_INVALID_SETTINGS:
+                                                        case SubmitHandshakeWorker.ERROR_URI:
+                                                        case SubmitHandshakeWorker.ERROR_CONNECTION:
+                                                        case SubmitHandshakeWorker.ERROR_PARSING:
+                                                            String msg = "Got error " + errorCode + " while sending message!";
+                                                            Log.e(TAG, msg);
+                                                            Toast.makeText(requireContext(), msg, Toast.LENGTH_LONG).show();
+                                                            callback.call(false);
+                                                            break;
+                                                        case SubmitHandshakeWorker.ERROR_NONE:
+                                                            if (preferences.getBoolean(Preferences.TOAST_MESSAGE_SENT.toString(), true)) {
+                                                                Toast.makeText(requireContext(), R.string.success_sending_message, Toast.LENGTH_LONG).show();
+                                                            }
+                                                            callback.call(true);
+                                                            break;
+                                                        default:
+                                                            Log.wtf(TAG, "Invalid errorCode: " + errorCode + "!");
+                                                            break;
+                                                    }
+                                                }
+                                            })
+                                    );
+                                }))));
     }
 
     private void checkForHandshake() {
