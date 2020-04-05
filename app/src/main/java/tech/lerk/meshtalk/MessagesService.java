@@ -103,7 +103,7 @@ public class MessagesService extends LifecycleService {
 
     private void handleHandshake(Handshake handshake) {
         Log.i(TAG, "Handshake received from: '" + handshake.getSender() + "'!");
-        chatProvider.getById(handshake.getId(), c ->
+        chatProvider.getById(handshake.getChat(), c ->
                 getChatName(handshake.getSender(), chatName -> {
                     Chat chat = c;
                     if (chat == null) {
@@ -268,7 +268,11 @@ public class MessagesService extends LifecycleService {
         AsyncTask.execute(() -> {
             for (int i = 0; i < data.getInt(DataKeys.HANDSHAKE_LIST_SIZE.toString(), 0); i++) {
                 Handshake handshake = gson.fromJson(data.getString(DataKeys.HANDSHAKE_LIST_ELEMENT_PREFIX + String.valueOf(i)), Handshake.class);
-                handleHandshake(handshake);
+                if(handshake != null) {
+                    handleHandshake(handshake);
+                } else {
+                    Log.e(TAG, "Handshake is null!");
+                }
             }
         });
     }

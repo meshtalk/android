@@ -136,7 +136,7 @@ public class ContactsFragment extends UpdatableFragment {
         chat.setRecipient(recipient.getId());
         chat.setSender(UUID.fromString(defaultSenderId));
         chat.setTitle("Chat with " + recipient.getName());
-        ChatProvider.get(requireContext()).save(chat);
+        AsyncTask.execute(() -> ChatProvider.get(requireContext()).save(chat));
         ((MainActivity) Objects.requireNonNull(getActivity())).getNavController()
                 .navigate(R.id.nav_item_chats);
     }
@@ -196,10 +196,7 @@ public class ContactsFragment extends UpdatableFragment {
         AsyncTask.execute(() -> {
             AtomicReference<AlertDialog> loadingDialog = new AtomicReference<>();
             requireActivity().runOnUiThread(() -> {
-                loadingDialog.set(new AlertDialog.Builder(requireContext())
-                        .setView(R.layout.dialog_loading)
-                        .setTitle(R.string.dialog_saving_title)
-                        .setCancelable(false).create());
+                loadingDialog.set(Stuff.getLoadingDialog((MainActivity) requireActivity(), null));
                 loadingDialog.get().show();
                 TextView loadingText = loadingDialog.get().findViewById(R.id.loading_text);
                 loadingText.setText(R.string.dialog_saving_creating_contact);

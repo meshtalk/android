@@ -1,5 +1,6 @@
 package tech.lerk.meshtalk;
 
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
@@ -16,7 +17,6 @@ import android.widget.Toast;
 
 import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.drawerlayout.widget.DrawerLayout;
@@ -261,11 +261,7 @@ public class MainActivity extends AppCompatActivity {
 
 
     private void handleFirstStart() {
-        AlertDialog loadingDialog = new AlertDialog.Builder(this)
-                .setTitle(R.string.first_start_dialog_title)
-                .setCancelable(false)
-                .setView(R.layout.dialog_loading)
-                .create();
+        AlertDialog loadingDialog = Stuff.getLoadingDialog(MainActivity.this, null, R.string.first_start_dialog_title);
         loadingDialog.show();
         ProgressBar progressBar = Objects.requireNonNull(loadingDialog.findViewById(R.id.loading_spinner));
         TextView loadingTextView = Objects.requireNonNull(loadingDialog.findViewById(R.id.loading_text));

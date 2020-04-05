@@ -1,7 +1,13 @@
 package tech.lerk.meshtalk;
 
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.os.AsyncTask;
 import android.util.Log;
+
+import androidx.annotation.Nullable;
+import androidx.annotation.StringRes;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -83,19 +89,20 @@ public class Stuff {
     }
 
     public static void determineSelfId(UUID sender, UUID recipient, IdentityProvider identityProvider, Provider.LookupCallback<UUID> callback) {
-        identityProvider.exists(sender, e -> {
-            if (e) {
-                callback.call(sender);
-            } else {
-                identityProvider.exists(recipient, e1 -> {
-                    if (e1) {
-                        callback.call(recipient);
+        AsyncTask.execute(() ->
+                identityProvider.exists(sender, e -> {
+                    if (e) {
+                        callback.call(sender);
                     } else {
-                        callback.call(null);
+                        identityProvider.exists(recipient, e1 -> {
+                            if (e1) {
+                                callback.call(recipient);
+                            } else {
+                                callback.call(null);
+                            }
+                        });
                     }
-                });
-            }
-        });
+                }));
     }
 
     public static void determineOtherId(UUID sender, UUID recipient, IdentityProvider identityProvider, Provider.LookupCallback<UUID> callback) {
@@ -112,5 +119,24 @@ public class Stuff {
                 });
             }
         });
+    }
+
+    public static AlertDialog getLoadingDialog(MainActivity activity,
+                                               @Nullable DialogInterface.OnClickListener negativeButtonListener) {
+        return getLoadingDialog(activity, negativeButtonListener, R.string.loading);
+    }
+
+    public static AlertDialog getLoadingDialog(MainActivity activity,
+                                               @Nullable DialogInterface.OnClickListener negativeButtonListener,
+                                               @StringRes int titleRes) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(activity)
+                .setTitle(titleRes)
+                .setView(R.layout.dialog_loading)
+                .setCancelable(false);
+
+        if (negativeButtonListener != null) {
+            builder.setNegativeButton(R.string.action_back, negativeButtonListener);
+        }
+        return builder.create();
     }
 }
