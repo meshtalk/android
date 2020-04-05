@@ -153,6 +153,8 @@
     <string name="dialog_delete_chat_message">Do you really want to delete this chat? This will also delete any messages associated with it.</string>
     <string name="action_redo_handshake">Renew Handshake</string>
     <string name="error_not_implemented">Not implemented yet!</string>
-    <string name="info_fetching_handshakes">Fetching handshakes...</string>
+    <string name="info_fetching_handshakes">Fetching handshakes…</string>
     <string name="action_refresh">Refresh</string>
+    <string name="service_desc_messages">Background service that fetches messages and handshakes.</string>
+    <string name="service_label_messages">Messages Service</string>
 </resources>

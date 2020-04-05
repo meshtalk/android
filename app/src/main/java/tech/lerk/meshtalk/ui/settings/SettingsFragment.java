@@ -17,10 +17,10 @@ import java.util.Objects;
 import tech.lerk.meshtalk.KeyHolder;
 import tech.lerk.meshtalk.R;
 import tech.lerk.meshtalk.entities.Preferences;
-import tech.lerk.meshtalk.providers.ChatProvider;
-import tech.lerk.meshtalk.providers.ContactProvider;
-import tech.lerk.meshtalk.providers.IdentityProvider;
-import tech.lerk.meshtalk.providers.MessageProvider;
+import tech.lerk.meshtalk.providers.impl.ChatProvider;
+import tech.lerk.meshtalk.providers.impl.ContactProvider;
+import tech.lerk.meshtalk.providers.impl.IdentityProvider;
+import tech.lerk.meshtalk.providers.impl.MessageProvider;
 
 import static tech.lerk.meshtalk.Stuff.waitOrDonT;
 
@@ -71,28 +71,28 @@ public class SettingsFragment extends PreferenceFragmentCompat {
                 loadingTextView.setText(R.string.progress_self_destruct_deleting_contacts);
             });
             ContactProvider contactProvider = ContactProvider.get(requireContext());
-            contactProvider.getAllIds().forEach(contactProvider::deleteById);
+            contactProvider.getAllIds(uids -> uids.forEach(contactProvider::deleteById));
             waitOrDonT(200);
             requireActivity().runOnUiThread(() -> {
                 progressBar.setProgress(10, true);
                 loadingTextView.setText(R.string.progress_self_destruct_deleting_messages);
             });
             MessageProvider messageProvider = MessageProvider.get(requireContext());
-            messageProvider.getAllIds().forEach(messageProvider::deleteById);
+            messageProvider.getAllIds(mids -> mids.forEach(messageProvider::deleteById));
             waitOrDonT(200);
             requireActivity().runOnUiThread(() -> {
                 progressBar.setProgress(20, true);
                 loadingTextView.setText(R.string.progress_self_destruct_deleting_chats);
             });
             ChatProvider chatProvider = ChatProvider.get(requireContext());
-            chatProvider.getAllIds().forEach(chatProvider::deleteById);
+            chatProvider.getAllIds(cids -> cids.forEach(chatProvider::deleteById));
             waitOrDonT(200);
             requireActivity().runOnUiThread(() -> {
                 progressBar.setProgress(30, true);
                 loadingTextView.setText(R.string.progress_self_destruct_deleting_identities);
             });
             IdentityProvider identityProvider = IdentityProvider.get(requireContext());
-            identityProvider.getAllIds().forEach(identityProvider::deleteById);
+            identityProvider.getAllIds(iids -> iids.forEach(identityProvider::deleteById));
             waitOrDonT(200);
             requireActivity().runOnUiThread(() -> {
                 progressBar.setProgress(40, true);

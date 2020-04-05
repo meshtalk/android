@@ -25,7 +25,6 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProviders;
 import androidx.preference.PreferenceManager;
 
@@ -53,8 +52,8 @@ import tech.lerk.meshtalk.entities.Identity;
 import tech.lerk.meshtalk.entities.Preferences;
 import tech.lerk.meshtalk.exceptions.DecryptionException;
 import tech.lerk.meshtalk.exceptions.EncryptionException;
-import tech.lerk.meshtalk.providers.ContactProvider;
-import tech.lerk.meshtalk.providers.IdentityProvider;
+import tech.lerk.meshtalk.providers.impl.ContactProvider;
+import tech.lerk.meshtalk.providers.impl.IdentityProvider;
 import tech.lerk.meshtalk.ui.UpdatableFragment;
 
 public class IdentitiesFragment extends UpdatableFragment {
@@ -177,16 +176,19 @@ public class IdentitiesFragment extends UpdatableFragment {
         FloatingActionButton fab = root.findViewById(R.id.new_identity_button);
         fab.setOnClickListener(view -> handleActionButtonClick());
 
-        if (IdentityProvider.get(requireContext()).getAllIds().size() < 1) {
-            new androidx.appcompat.app.AlertDialog.Builder(requireContext())
-                    .setTitle(R.string.dialog_no_identities_title)
-                    .setMessage(R.string.dialog_no_identities_message)
-                    .setNegativeButton(R.string.action_no, (d, w) -> d.dismiss())
-                    .setPositiveButton(R.string.action_yes, (d, w) -> {
-                        d.dismiss();
-                        handleActionButtonClick();
-                    }).create().show();
-        }
+        AsyncTask.execute(() -> IdentityProvider.get(requireContext()).getAllIds(ids -> {
+            if (ids.size() < 1) {
+                Objects.requireNonNull(getActivity()).runOnUiThread(() ->
+                        new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                                .setTitle(R.string.dialog_no_identities_title)
+                                .setMessage(R.string.dialog_no_identities_message)
+                                .setNegativeButton(R.string.action_no, (d, w) -> d.dismiss())
+                                .setPositiveButton(R.string.action_yes, (d, w) -> {
+                                    d.dismiss();
+                                    handleActionButtonClick();
+                                }).create().show());
+            }
+        }));
 
         return root;
     }
@@ -209,17 +211,20 @@ public class IdentitiesFragment extends UpdatableFragment {
 
     @Override
     public void updateViews() {
-        Set<Identity> identities = new TreeSet<>();
-        identityProvider.getAllIds().forEach(id -> {
-            try {
-                identities.add(identityProvider.getById(id));
-            } catch (DecryptionException e) {
-                String msg = "Unable to decrypt identity: '" + id + "'!";
-                Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show();
-                Log.e(TAG, msg, e);
-            }
+        AsyncTask.execute(() -> {
+            Set<Identity> identities = new TreeSet<>();
+            identityProvider.getAllIds(ids -> ids.forEach(id -> {
+                try {
+                    //TODO: this is now very probably buggy!
+                    identityProvider.getById(id, identities::add);
+                } catch (DecryptionException e) {
+                    String msg = "Unable to decrypt identity: '" + id + "'!";
+                    Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show();
+                    Log.e(TAG, msg, e);
+                }
+            }));
+            Objects.requireNonNull(getActivity()).runOnUiThread(() -> identitiesViewModel.setIdentities(identities));
         });
-        identitiesViewModel.setIdentities(identities);
     }
 
     private void handleActionButtonClick() {

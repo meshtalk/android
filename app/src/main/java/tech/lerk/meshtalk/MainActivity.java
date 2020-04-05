@@ -1,5 +1,6 @@
 package tech.lerk.meshtalk;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.os.AsyncTask;
@@ -15,7 +16,6 @@ import android.widget.Toast;
 
 import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -26,69 +26,63 @@ import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 import androidx.preference.PreferenceManager;
-import androidx.work.Constraints;
 import androidx.work.Data;
-import androidx.work.NetworkType;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
 
 import com.google.android.material.navigation.NavigationView;
-import com.google.gson.Gson;
 
 import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.interfaces.RSAPublicKey;
-import java.sql.Time;
-import java.util.Base64;
-import java.util.HashMap;
 import java.util.Objects;
-import java.util.TreeSet;
 import java.util.UUID;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-
 import im.delight.android.identicons.Identicon;
-import tech.lerk.meshtalk.entities.Chat;
-import tech.lerk.meshtalk.entities.Contact;
-import tech.lerk.meshtalk.entities.Handshake;
-import tech.lerk.meshtalk.entities.Identity;
-import tech.lerk.meshtalk.entities.Message;
 import tech.lerk.meshtalk.entities.Preferences;
 import tech.lerk.meshtalk.exceptions.DecryptionException;
-import tech.lerk.meshtalk.providers.ChatProvider;
-import tech.lerk.meshtalk.providers.ContactProvider;
-import tech.lerk.meshtalk.providers.IdentityProvider;
-import tech.lerk.meshtalk.providers.MessageProvider;
+import tech.lerk.meshtalk.providers.impl.IdentityProvider;
 import tech.lerk.meshtalk.ui.UpdatableFragment;
 import tech.lerk.meshtalk.workers.DataKeys;
-import tech.lerk.meshtalk.workers.FetchHandshakesWorker;
-import tech.lerk.meshtalk.workers.FetchMessagesWorker;
 import tech.lerk.meshtalk.workers.GatewayMetaWorker;
-import tech.lerk.meshtalk.workers.SubmitHandshakeWorker;
 
 import static tech.lerk.meshtalk.Stuff.waitOrDonT;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = MainActivity.class.getCanonicalName();
-    private static final String FETCH_MESSAGES_TAG = "mt.fetch_messages";
-    private static final String FETCH_HANDSHAKES_TAG = "mt.fetch_handshakes";
+    private static MainActivity instance;
     private AppBarConfiguration mAppBarConfiguration;
     private SharedPreferences preferences;
     private KeyHolder keyHolder;
     private NavController navController;
     private NavigationView navigationView;
-    private Gson gson;
-    private ChatProvider chatProvider;
-    private ContactProvider contactProvider;
-    private IdentityProvider identityProvider;
+
+    public static void maybeUpdateViews() {
+        if (instance != null) {
+            instance.runOnUiThread(() -> {
+                Fragment fragmentById = instance.getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment);
+                if (fragmentById != null) {
+                    Fragment primaryNavigationFragment = fragmentById.getChildFragmentManager().getPrimaryNavigationFragment();
+                    if (primaryNavigationFragment instanceof UpdatableFragment) {
+                        ((UpdatableFragment) primaryNavigationFragment).updateViews();
+                    }
+                }
+            });
+        }
+    }
+
+    public static void maybeRunOnUiThread(Runnable r) {
+        if (instance != null) {
+            instance.runOnUiThread(r);
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        instance = null;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -108,12 +102,9 @@ public class MainActivity extends AppCompatActivity {
         NavigationUI.setupActionBarWithNavController(this, navController, mAppBarConfiguration);
         NavigationUI.setupWithNavController(navigationView, navController);
 
-        gson = Utils.getGson();
+        instance = this;
         keyHolder = KeyHolder.get(getApplicationContext());
         preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-        chatProvider = ChatProvider.get(getApplicationContext());
-        contactProvider = ContactProvider.get(getApplicationContext());
-        identityProvider = IdentityProvider.get(getApplicationContext());
 
         boolean firstStart = preferences.getBoolean(Preferences.FIRST_START.toString(), true);
         if (firstStart) {
@@ -222,284 +213,52 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateNavHeaderIdentity() {
         String defaultIdentityId = preferences.getString(Preferences.DEFAULT_IDENTITY.toString(), "");
-        try {
-            Identity defaultIdentity = null;
-            if (!defaultIdentityId.equals("")) {
-                defaultIdentity = IdentityProvider.get(this).getById(UUID.fromString(defaultIdentityId));
-            }
-            Identicon identicon = navigationView.getHeaderView(0).findViewById(R.id.nav_header_identicon);
-            TextView name = navigationView.getHeaderView(0).findViewById(R.id.nav_header_title);
-            TextView publicKey = navigationView.getHeaderView(0).findViewById(R.id.nav_header_subtitle);
-            if (defaultIdentity != null) {
-                identicon.show(defaultIdentity.getId());
-                name.setText(defaultIdentity.getName());
-                publicKey.setText(Stuff.getFingerprintForKey((RSAPublicKey) defaultIdentity.getPublicKey()));
-            } else {
-                identicon.show("");
-                name.setText(R.string.nav_header_title);
-                publicKey.setText(R.string.nav_header_subtitle);
-            }
-        } catch (DecryptionException e) {
-            Log.w(TAG, "Error getting default identity!", e);
+        if (!defaultIdentityId.equals("")) {
+            AsyncTask.execute(() -> {
+                try {
+                    IdentityProvider.get(this).getById(UUID.fromString(defaultIdentityId), defaultIdentity ->
+                            MainActivity.this.runOnUiThread(() -> {
+                                Identicon identicon = navigationView.getHeaderView(0).findViewById(R.id.nav_header_identicon);
+                                TextView name = navigationView.getHeaderView(0).findViewById(R.id.nav_header_title);
+                                TextView publicKey = navigationView.getHeaderView(0).findViewById(R.id.nav_header_subtitle);
+                                if (defaultIdentity != null) {
+                                    identicon.show(defaultIdentity.getId());
+                                    name.setText(defaultIdentity.getName());
+                                    publicKey.setText(Stuff.getFingerprintForKey((RSAPublicKey) defaultIdentity.getPublicKey()));
+                                } else {
+                                    identicon.show("");
+                                    name.setText(R.string.nav_header_title);
+                                    publicKey.setText(R.string.nav_header_subtitle);
+                                }
+                            }));
+                } catch (DecryptionException e) {
+                    Log.w(TAG, "Error getting default identity!", e);
+                }
+            });
         }
     }
 
     private void noIdentitiesCheckpoint() {
-        if (IdentityProvider.get(getApplicationContext()).getAllIds().size() < 1) {
-            navController.navigate(R.id.nav_item_identities);
-        } else {
-            updateNavHeader();
-            startWorkers();
-        }
+        AppExecutors.getInstance().diskIO().execute(() ->
+                IdentityProvider.get(getApplicationContext()).getAllIds(iids ->
+                        MainActivity.this.runOnUiThread(() -> {
+                            if (iids.size() < 1) {
+                                navController.navigate(R.id.nav_item_identities);
+                            } else {
+                                updateNavHeader();
+                                startWorkers();
+                            }
+                        })));
     }
 
     public void startWorkers() {
         if (preferences.getString(Preferences.DEFAULT_IDENTITY.toString(), null) != null) {
-            startFetchMessageWorker();
-            startFetchHandshakeWorker();
+            startService(new Intent(getApplicationContext(), MessagesService.class));
         } else {
             Toast.makeText(getApplicationContext(), R.string.info_fetching_messages_no_default_identity, Toast.LENGTH_LONG).show();
         }
     }
 
-    private void startFetchHandshakeWorker() {
-        OneTimeWorkRequest fetchHandshakesRequest = new OneTimeWorkRequest
-                .Builder(FetchHandshakesWorker.class)
-                .setConstraints(new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
-                .build();
-        WorkManager instance = WorkManager.getInstance(this);
-        instance.enqueue(fetchHandshakesRequest);
-        instance.getWorkInfoByIdLiveData(fetchHandshakesRequest.getId()).observe(this, info -> {
-            if (info != null && info.getState().isFinished()) {
-                Data data = info.getOutputData();
-                int errorCode = data.getInt(DataKeys.ERROR_CODE.toString(), -1);
-                switch (errorCode) {
-                    case FetchHandshakesWorker.ERROR_INVALID_SETTINGS:
-                    case FetchHandshakesWorker.ERROR_URI:
-                    case FetchHandshakesWorker.ERROR_CONNECTION:
-                    case FetchHandshakesWorker.ERROR_PARSING:
-                        String msg = "Got error " + errorCode + " while fetching handshakes!";
-                        Log.e(TAG, msg);
-                        Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
-                        break;
-                    case FetchHandshakesWorker.ERROR_NOT_FOUND:
-                    case FetchHandshakesWorker.ERROR_NONE:
-                        if (data.getInt(DataKeys.HANDSHAKE_LIST_SIZE.toString(), 0) > 0) {
-                            parseHandshakeResponse(data);
-                        }
-                        break;
-                    default:
-                        Log.wtf(TAG, "Invalid error code: " + errorCode + "!");
-                        break;
-                }
-            }
-        });
-    }
-
-    private void parseHandshakeResponse(Data data) {
-        AsyncTask.execute(() -> {
-            for (int i = 0; i < data.getInt(DataKeys.HANDSHAKE_LIST_SIZE.toString(), 0); i++) {
-                Handshake handshake = gson.fromJson(data.getString(DataKeys.HANDSHAKE_LIST_ELEMENT_PREFIX + String.valueOf(i)), Handshake.class);
-                handleHandshake(handshake);
-            }
-        });
-    }
-
-    private void startFetchMessageWorker() {
-        OneTimeWorkRequest fetchMessagesRequest = new OneTimeWorkRequest
-                .Builder(FetchMessagesWorker.class)
-                .setConstraints(new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
-                .build();
-        WorkManager instance = WorkManager.getInstance(this);
-        instance.enqueue(fetchMessagesRequest);
-        instance.getWorkInfoByIdLiveData(fetchMessagesRequest.getId()).observe(this, info -> {
-            if (info != null && info.getState().isFinished()) {
-                Data data = info.getOutputData();
-                int errorCode = data.getInt(DataKeys.ERROR_CODE.toString(), -1);
-                switch (errorCode) {
-                    case FetchMessagesWorker.ERROR_INVALID_SETTINGS:
-                    case FetchMessagesWorker.ERROR_URI:
-                    case FetchMessagesWorker.ERROR_CONNECTION:
-                    case FetchMessagesWorker.ERROR_PARSING:
-                        String msg = "Got error " + errorCode + " while fetching messages!";
-                        Log.e(TAG, msg);
-                        Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
-                        break;
-                    case FetchMessagesWorker.ERROR_NOT_FOUND:
-                        Log.i(TAG, "No messages found on gateway.");
-                        break;
-                    case FetchMessagesWorker.ERROR_NONE:
-                        AsyncTask.execute(() -> {
-                            for (int i = 0; i < data.getInt(DataKeys.MESSAGE_LIST_SIZE.toString(), 0); i++) {
-                                Message message = gson.fromJson(data.getString(DataKeys.MESSAGE_LIST_ELEMENT_PREFIX + String.valueOf(i)), Message.class);
-                                MessageProvider.get(getApplicationContext()).save(message);
-                            }
-                            callUpdateOnFragment();
-                        });
-                        break;
-                    default:
-                        Log.wtf(TAG, "Invalid error code: " + errorCode + "!");
-                        break;
-                }
-            }
-        });
-    }
-
-    private void handleHandshake(Handshake handshake) {
-        Log.i(TAG, "Handshake received from: '" + handshake.getSender() + "'!");
-        Chat chat = chatProvider.getById(handshake.getId());
-        if (chat == null) {
-            // new chat "request"
-            //TODO add ability to decline a chat (?)
-            chat = new Chat();
-            chat.setId(handshake.getChat());
-            chat.setRecipient(handshake.getSender());
-            chat.setSender(handshake.getReceiver());
-            chat.setTitle(getChatName(handshake.getSender()));
-            chat.setHandshake(new HashMap<>());
-            chat.setMessages(new TreeSet<>());
-        }
-        HashMap<UUID, Handshake> handshakes = chat.getHandshake();
-
-        Handshake maybeExistingHandshake = handshakes.get(handshake.getReceiver());
-        if (maybeExistingHandshake != null && maybeExistingHandshake.getId().equals(handshake.getId())) {
-            return; // we already have this one.
-        }
-
-        handshakes.put(handshake.getReceiver(), handshake);
-        if (handshakes.get(handshake.getSender()) == null) { // if we haven't sent a handshake yet...
-            replyToHandshake(handshake, chat);
-        }
-        chat.setHandshake(handshakes);
-        chatProvider.save(chat);
-        callUpdateOnFragment();
-    }
-
-    private void callUpdateOnFragment() {
-        MainActivity.this.runOnUiThread(() -> {
-            Fragment fragmentById = getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment);
-            if (fragmentById != null) {
-                Fragment primaryNavigationFragment = fragmentById.getChildFragmentManager().getPrimaryNavigationFragment();
-                if (primaryNavigationFragment instanceof UpdatableFragment) {
-                    ((UpdatableFragment) primaryNavigationFragment).updateViews();
-                }
-            }
-        });
-    }
-
-    private void replyToHandshake(Handshake handshake, Chat chat) {
-        try {
-            Identity handshakeIdentity = identityProvider.getById(handshake.getReceiver());
-            if (handshakeIdentity != null) {
-                SecretKey secretKey = getSecretKey(handshake, handshakeIdentity);
-                if (secretKey != null) {
-                    Cipher cipher = Cipher.getInstance("RSA");
-                    Contact contactById = contactProvider.getById(handshake.getSender());
-                    if (contactById != null) {
-                        cipher.init(Cipher.ENCRYPT_MODE, contactById.getPublicKey());
-
-                        Handshake handshakeReply = new Handshake();
-                        handshakeReply.setId(UUID.randomUUID());
-                        handshakeReply.setChat(chat.getId());
-                        handshakeReply.setReceiver(chat.getRecipient());
-                        handshakeReply.setSender(chat.getSender());
-                        handshakeReply.setKey(Base64.getMimeEncoder().encodeToString(cipher.doFinal(secretKey.getEncoded())));
-                        handshakeReply.setDate(new Time(System.currentTimeMillis()));
-
-                        HashMap<UUID, Handshake> handshakes1 = chat.getHandshake();
-                        handshakes1.put(chat.getRecipient(), handshakeReply);
-                        chat.setHandshake(handshakes1);
-                        chatProvider.save(chat);
-
-                        Data handshakeData = new Data.Builder()
-                                .putString(DataKeys.HANDSHAKE_ID.toString(), handshakeReply.getId().toString())
-                                .putString(DataKeys.HANDSHAKE_CHAT.toString(), handshakeReply.getChat().toString())
-                                .putString(DataKeys.HANDSHAKE_SENDER.toString(), handshakeReply.getSender().toString())
-                                .putString(DataKeys.HANDSHAKE_RECEIVER.toString(), handshakeReply.getReceiver().toString())
-                                .putString(DataKeys.HANDSHAKE_DATE.toString(), handshakeReply.getDate().toString())
-                                .putString(DataKeys.HANDSHAKE_KEY.toString(), handshakeReply.getKey())
-                                .build();
-
-                        OneTimeWorkRequest sendHandshakeWorkRequest = new OneTimeWorkRequest.Builder(SubmitHandshakeWorker.class)
-                                .setInputData(handshakeData).build();
-                        WorkManager workManager = WorkManager.getInstance(MainActivity.this);
-                        workManager.enqueue(sendHandshakeWorkRequest);
-
-                        runOnUiThread(() ->
-                                workManager.getWorkInfoByIdLiveData(sendHandshakeWorkRequest.getId()).observe(MainActivity.this, info -> {
-                                    if (info != null && info.getState().isFinished()) {
-                                        Data data = info.getOutputData();
-                                        int errorCode = data.getInt(DataKeys.ERROR_CODE.toString(), -1);
-                                        switch (errorCode) {
-                                            case SubmitHandshakeWorker.ERROR_INVALID_SETTINGS:
-                                            case SubmitHandshakeWorker.ERROR_URI:
-                                            case SubmitHandshakeWorker.ERROR_CONNECTION:
-                                            case SubmitHandshakeWorker.ERROR_PARSING:
-                                                String msg = "Got error " + errorCode + " while sending handshake!";
-                                                Log.e(TAG, msg);
-                                                Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
-                                                break;
-                                            case SubmitHandshakeWorker.ERROR_NONE:
-                                            default:
-                                                Toast.makeText(getApplicationContext(), R.string.success_sending_handshake, Toast.LENGTH_LONG).show();
-                                                break;
-                                        }
-                                    }
-                                })
-                        );
-                    } else {
-                        Log.e(TAG, "Contact is null!");
-                        MainActivity.this.runOnUiThread(() -> Toast.makeText(getApplicationContext(),
-                                R.string.error_unknown_contact, Toast.LENGTH_LONG).show());
-                    }
-                } else {
-                    String msg = "Secret key is null!";
-                    Log.e(TAG, msg);
-                    MainActivity.this.runOnUiThread(() -> Toast.makeText(getApplicationContext(),
-                            msg, Toast.LENGTH_LONG).show());
-                }
-            } else {
-                String msg = "Identity is null!";
-                Log.e(TAG, msg);
-                MainActivity.this.runOnUiThread(() -> Toast.makeText(getApplicationContext(),
-                        msg, Toast.LENGTH_LONG).show());
-            }
-        } catch (NoSuchAlgorithmException e) {
-            Log.wtf(TAG, "Unable to get KeyGenerator!", e);
-        } catch (NoSuchPaddingException e) {
-            Log.wtf(TAG, "Unable to get Cipher!", e);
-        } catch (InvalidKeyException e) {
-            Log.e(TAG, "Unable to init Cipher!", e);
-        } catch (BadPaddingException | IllegalBlockSizeException e) {
-            Log.e(TAG, "Unable to encrypt handshake!", e);
-        } catch (DecryptionException e) {
-            Log.e(TAG, "Unable to decrypt identity!", e);
-        }
-    }
-
-    @Nullable
-    private SecretKey getSecretKey(Handshake handshake, Identity identity) {
-        try {
-            Cipher cipher = Cipher.getInstance("RSA");
-            cipher.init(Cipher.DECRYPT_MODE, identity.getPrivateKey());
-            byte[] decryptedKey = cipher.doFinal(Base64.getMimeDecoder().decode(handshake.getKey()));
-            return new SecretKeySpec(decryptedKey, "AES");
-        } catch (NoSuchAlgorithmException | InvalidKeyException |
-                NoSuchPaddingException | BadPaddingException | IllegalBlockSizeException e) {
-            Log.e(TAG, "Unable to decrypt handshake '" + handshake.getId() + "' with identity '" + identity.getId() + "'");
-        }
-        return null;
-    }
-
-    private String getChatName(UUID sender) {
-        String title = "Chat with ";
-        Contact contact = contactProvider.getById(sender);
-        if (contact == null) {
-            return title + sender;
-        } else {
-            return title + contact.getName();
-        }
-    }
 
     private void handleFirstStart() {
         AlertDialog loadingDialog = new AlertDialog.Builder(this)

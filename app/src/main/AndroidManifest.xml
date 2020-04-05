@@ -27,6 +27,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service android:name=".MessagesService"
+            android:description="@string/service_desc_messages"
+            android:label="@string/service_label_messages"
+            />
     </application>
 
 </manifest>

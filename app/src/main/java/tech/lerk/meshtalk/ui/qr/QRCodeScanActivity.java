@@ -18,7 +18,7 @@ import me.dm7.barcodescanner.zxing.ZXingScannerView;
 import tech.lerk.meshtalk.R;
 import tech.lerk.meshtalk.Utils;
 import tech.lerk.meshtalk.entities.Contact;
-import tech.lerk.meshtalk.providers.ContactProvider;
+import tech.lerk.meshtalk.providers.impl.ContactProvider;
 
 public class QRCodeScanActivity extends AppCompatActivity {
 

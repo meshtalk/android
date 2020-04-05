@@ -3,8 +3,6 @@ package tech.lerk.meshtalk;
 import android.content.Context;
 import android.util.Log;
 
-import androidx.annotation.Nullable;
-
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -14,12 +12,11 @@ import java.security.interfaces.RSAPublicKey;
 import java.util.Base64;
 import java.util.UUID;
 
-import tech.lerk.meshtalk.entities.Contact;
-import tech.lerk.meshtalk.entities.Identity;
 import tech.lerk.meshtalk.entities.ui.UserDO;
 import tech.lerk.meshtalk.exceptions.DecryptionException;
-import tech.lerk.meshtalk.providers.ContactProvider;
-import tech.lerk.meshtalk.providers.IdentityProvider;
+import tech.lerk.meshtalk.providers.Provider;
+import tech.lerk.meshtalk.providers.impl.ContactProvider;
+import tech.lerk.meshtalk.providers.impl.IdentityProvider;
 
 public class Stuff {
     private static final String TAG = Stuff.class.getCanonicalName();
@@ -27,9 +24,7 @@ public class Stuff {
     public static final String KEY_STORE_TYPE = "AndroidKeyStore";
     public static final String AES_MODE = "AES/GCM/NoPadding";
     public static final String APP_KEY_ALIAS = "MeshTalkKey";
-    public static final String EMPTY_OBJECT = "{}";
     public static final String NONE = "NONE";
-    public static final String HANDSHAKE_CONTENT = "Henlo!";
 
     public static void waitOrDonT(long millis) {
         try {
@@ -65,41 +60,57 @@ public class Stuff {
         return reducedIV;
     }
 
-    public static UserDO getUserDO(UUID uuid, Context context) {
+    public static void getUserDO(UUID uuid, Context context, Provider.LookupCallback<UserDO> callback) {
         ContactProvider contactProvider = ContactProvider.get(context);
         IdentityProvider identityProvider = IdentityProvider.get(context);
         try {
-            Identity identityById = identityProvider.getById(uuid);
-            if (identityById != null) {
-                return new UserDO(identityById.getId().toString(), identityById.getName());
-            }
+            identityProvider.getById(uuid, i -> {
+                if (i != null) {
+                    callback.call(new UserDO(i.getId().toString(), i.getName()));
+                } else {
+                    contactProvider.getById(uuid, c -> {
+                        if (c != null) {
+                            callback.call(new UserDO(c.getId().toString(), c.getName()));
+                        } else {
+                            callback.call(null);
+                        }
+                    });
+                }
+            });
         } catch (DecryptionException e) {
             Log.i(TAG, "Unable to decrypt identity, probably not found...", e);
         }
-        Contact contactById = contactProvider.getById(uuid);
-        if (contactById != null) {
-            return new UserDO(contactById.getId().toString(), contactById.getName());
-        }
-        return null;
     }
 
-    @Nullable
-    public static UUID determineSelfId(UUID sender, UUID recipient, IdentityProvider identityProvider) {
-       if(identityProvider.exists(sender)) {
-           return sender;
-       } else if (identityProvider.exists(recipient)) {
-           return recipient;
-       }
-       return null;
+    public static void determineSelfId(UUID sender, UUID recipient, IdentityProvider identityProvider, Provider.LookupCallback<UUID> callback) {
+        identityProvider.exists(sender, e -> {
+            if (e) {
+                callback.call(sender);
+            } else {
+                identityProvider.exists(recipient, e1 -> {
+                    if (e1) {
+                        callback.call(recipient);
+                    } else {
+                        callback.call(null);
+                    }
+                });
+            }
+        });
     }
 
-    @Nullable
-    public static UUID determineOtherId(UUID sender, UUID recipient, IdentityProvider identityProvider) {
-        if(identityProvider.exists(sender)) {
-            return recipient;
-        } else if (identityProvider.exists(recipient)) {
-            return sender;
-        }
-        return null;
+    public static void determineOtherId(UUID sender, UUID recipient, IdentityProvider identityProvider, Provider.LookupCallback<UUID> callback) {
+        identityProvider.exists(sender, e -> {
+            if (e) {
+                callback.call(recipient);
+            } else {
+                identityProvider.exists(recipient, e1 -> {
+                    if (e1) {
+                        callback.call(sender);
+                    } else {
+                        callback.call(null);
+                    }
+                });
+            }
+        });
     }
 }

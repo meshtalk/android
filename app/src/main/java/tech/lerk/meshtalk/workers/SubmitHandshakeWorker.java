@@ -21,7 +21,9 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.sql.Time;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.Objects;
 import java.util.UUID;
 
 import tech.lerk.meshtalk.Utils;
@@ -55,7 +57,7 @@ public class SubmitHandshakeWorker extends GatewayWorker {
                 handshake.setChat(UUID.fromString(getInputData().getString(DataKeys.HANDSHAKE_CHAT.toString())));
                 handshake.setSender(UUID.fromString(getInputData().getString(DataKeys.HANDSHAKE_SENDER.toString())));
                 handshake.setReceiver(UUID.fromString(getInputData().getString(DataKeys.HANDSHAKE_RECEIVER.toString())));
-                handshake.setDate(Time.valueOf(getInputData().getString(DataKeys.HANDSHAKE_DATE.toString())));
+                handshake.setDate(LocalDateTime.ofEpochSecond(getInputData().getLong(DataKeys.HANDSHAKE_DATE.toString(), 0), 0, ZoneOffset.UTC));
                 handshake.setKey(getInputData().getString(DataKeys.HANDSHAKE_KEY.toString()));
 
                 byte[] jsonBytes = gson.toJson(handshake).getBytes(StandardCharsets.UTF_8);

@@ -43,15 +43,16 @@ public class GatewayMetaWorker extends GatewayWorker {
             URL gatewayMetaUrl = new URL(hostString);
             HttpURLConnection connection = (HttpURLConnection) gatewayMetaUrl.openConnection();
             try {
-                InputStream inputStream = connection.getInputStream();
-                InputStreamReader metaReader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
-                MetaInfo metaInfo = gson.fromJson(metaReader, MetaInfo.class);
-                Log.i(TAG, "Fetching meta from gateway: '" + gatewayMetaUrl + "'!");
-                return Result.success(new Data.Builder()
-                        .putInt(DataKeys.ERROR_CODE.toString(), errorCode)
-                        .putInt(DataKeys.API_VERSION.toString(), metaInfo.getApiVersion())
-                        .putString(DataKeys.CORE_VERSION.toString(), metaInfo.getCoreVersion())
-                        .build());
+                try (InputStream inputStream = connection.getInputStream()) {
+                    InputStreamReader metaReader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
+                    MetaInfo metaInfo = gson.fromJson(metaReader, MetaInfo.class);
+                    Log.i(TAG, "Fetching meta from gateway: '" + gatewayMetaUrl + "'!");
+                    return Result.success(new Data.Builder()
+                            .putInt(DataKeys.ERROR_CODE.toString(), errorCode)
+                            .putInt(DataKeys.API_VERSION.toString(), metaInfo.getApiVersion())
+                            .putString(DataKeys.CORE_VERSION.toString(), metaInfo.getCoreVersion())
+                            .build());
+                }
             } catch (JsonSyntaxException | JsonIOException e) {
                 Log.e(TAG, "Unable to parse gateway metadata!", e);
                 errorCode = ERROR_PARSING;

@@ -1,6 +1,7 @@
 package tech.lerk.meshtalk.ui.chats;
 
 import android.app.AlertDialog;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -19,6 +20,7 @@ import androidx.lifecycle.ViewModelProviders;
 import androidx.preference.PreferenceManager;
 
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
@@ -28,9 +30,9 @@ import tech.lerk.meshtalk.MainActivity;
 import tech.lerk.meshtalk.R;
 import tech.lerk.meshtalk.entities.Chat;
 import tech.lerk.meshtalk.entities.Preferences;
-import tech.lerk.meshtalk.providers.ChatProvider;
-import tech.lerk.meshtalk.providers.ContactProvider;
-import tech.lerk.meshtalk.providers.MessageProvider;
+import tech.lerk.meshtalk.providers.impl.ChatProvider;
+import tech.lerk.meshtalk.providers.impl.ContactProvider;
+import tech.lerk.meshtalk.providers.impl.MessageProvider;
 import tech.lerk.meshtalk.ui.UpdatableFragment;
 
 public class ChatsFragment extends UpdatableFragment {
@@ -109,12 +111,13 @@ public class ChatsFragment extends UpdatableFragment {
                         });
                         identicon.show(chat.getRecipient().toString());
                         title.setText(chat.getTitle());
-                        String latestMessageText = messageProvider.decryptMessage(messageProvider.getLatestMessage(chat), chat);
-                        if (latestMessageText != null) {
-                            latestMessage.setText(latestMessageText);
-                        } else {
-                            latestMessage.setText(R.string.no_messages);
-                        }
+                        messageProvider.decryptMessage(messageProvider.getLatestMessage(chat), chat, latestMessageText -> {
+                            if (latestMessageText != null) {
+                                latestMessage.setText(latestMessageText);
+                            } else {
+                                latestMessage.setText(R.string.no_messages);
+                            }
+                        });
                     }
                     return v;
                 }
@@ -128,8 +131,11 @@ public class ChatsFragment extends UpdatableFragment {
 
     @Override
     public void updateViews() {
-        Set<Chat> chats = new TreeSet<>();
-        chatProvider.getAllIds().forEach(id -> chats.add(chatProvider.getById(id)));
-        chatsViewModel.setChats(chats);
+        AsyncTask.execute(() -> {
+            Set<Chat> chats = new TreeSet<>();
+            //TODO: this is now very probably buggy!
+            chatProvider.getAllIds(cids -> cids.forEach(id -> chatProvider.getById(id, chats::add)));
+            Objects.requireNonNull(getActivity()).runOnUiThread(() -> chatsViewModel.setChats(chats));
+        });
     }
 }

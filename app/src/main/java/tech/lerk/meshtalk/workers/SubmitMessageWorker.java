@@ -18,6 +18,9 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.Time;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.Objects;
 import java.util.UUID;
 
 import tech.lerk.meshtalk.Utils;
@@ -49,7 +52,7 @@ public class SubmitMessageWorker extends GatewayWorker {
                 message.setChat(UUID.fromString(getInputData().getString(DataKeys.MESSAGE_CHAT.toString())));
                 message.setSender(UUID.fromString(getInputData().getString(DataKeys.MESSAGE_SENDER.toString())));
                 message.setReceiver(UUID.fromString(getInputData().getString(DataKeys.MESSAGE_RECEIVER.toString())));
-                message.setDate(Time.valueOf(getInputData().getString(DataKeys.MESSAGE_DATE.toString())));
+                message.setDate(LocalDateTime.ofEpochSecond(getInputData().getLong(DataKeys.MESSAGE_DATE.toString(), 0), 0, ZoneOffset.UTC));
                 message.setContent(getInputData().getString(DataKeys.MESSAGE_CONTENT.toString()));
 
                 gson.toJson(message, new OutputStreamWriter(connection.getOutputStream()));

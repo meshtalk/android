@@ -7,13 +7,13 @@ import androidx.lifecycle.ViewModel;
 
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.stream.Collectors;
+import java.util.UUID;
 
 import tech.lerk.meshtalk.Stuff;
 import tech.lerk.meshtalk.entities.Chat;
-import tech.lerk.meshtalk.entities.Message;
 import tech.lerk.meshtalk.entities.ui.MessageDO;
-import tech.lerk.meshtalk.providers.MessageProvider;
+import tech.lerk.meshtalk.providers.Provider;
+import tech.lerk.meshtalk.providers.impl.MessageProvider;
 
 public class ConversationViewModel extends ViewModel {
 
@@ -27,12 +27,25 @@ public class ConversationViewModel extends ViewModel {
         return messages;
     }
 
-    public void setMessages(Set<Message> msgs, Chat chat, Context context) {
-        messages.setValue(msgs.stream()
-                .map(m -> new MessageDO(
-                        m.getId().toString(),
-                        MessageProvider.get(context).decryptMessage(m, chat),
-                        Stuff.getUserDO(m.getSender(), context), m.getDate()))
-                .collect(Collectors.toCollection(TreeSet::new)));
+    public void setMessages(Set<UUID> msgs, Chat chat, Context context) {
+        msgs.forEach(m -> buildMessage(chat, context, m, mdo -> {
+            Set<MessageDO> value = messages.getValue();
+            if (value == null) {
+                value = new TreeSet<>();
+            }
+            value.add(mdo);
+            messages.setValue(value);
+        }));
+    }
+
+    private void buildMessage(Chat chat, Context context, UUID m, Provider.LookupCallback<MessageDO> callback) {
+        MessageProvider messageProvider = MessageProvider.get(context);
+        messageProvider.getById(m, msg ->
+                messageProvider.decryptMessage(msg, chat, messageText ->
+                        Stuff.getUserDO(msg.getSender(), context, messageUser ->
+                                callback.call(new MessageDO(
+                                        msg.getId().toString(),
+                                        messageText,
+                                        messageUser, msg.getDate())))));
     }
 }
