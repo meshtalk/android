@@ -22,14 +22,16 @@ import javax.crypto.spec.GCMParameterSpec;
 import tech.lerk.meshtalk.KeyHolder;
 import tech.lerk.meshtalk.Stuff;
 import tech.lerk.meshtalk.Utils;
+import tech.lerk.meshtalk.db.entities.ChatDbo;
+import tech.lerk.meshtalk.db.entities.ContactDbo;
+import tech.lerk.meshtalk.db.entities.HandshakeDbo;
+import tech.lerk.meshtalk.db.entities.IdentityDbo;
+import tech.lerk.meshtalk.db.entities.MessageDbo;
 import tech.lerk.meshtalk.entities.Chat;
 import tech.lerk.meshtalk.entities.Contact;
+import tech.lerk.meshtalk.entities.Handshake;
 import tech.lerk.meshtalk.entities.Identity;
 import tech.lerk.meshtalk.entities.Message;
-import tech.lerk.meshtalk.entities.db.ChatDbo;
-import tech.lerk.meshtalk.entities.db.ContactDbo;
-import tech.lerk.meshtalk.entities.db.IdentityDbo;
-import tech.lerk.meshtalk.entities.db.MessageDbo;
 import tech.lerk.meshtalk.exceptions.DecryptionException;
 import tech.lerk.meshtalk.exceptions.EncryptionException;
 
@@ -141,8 +143,6 @@ public final class DatabaseEntityConverter {
             c1.setRecipient(c.getRecipient());
             c1.setSender(c.getSender());
             c1.setTitle(c.getTitle());
-            c1.setMessages(c.getMessages());
-            c1.setHandshakes(c.getHandshakes());
             return c1;
         }
         return null;
@@ -151,7 +151,31 @@ public final class DatabaseEntityConverter {
     @Nullable
     public static ChatDbo convert(@Nullable Chat c) {
         if (c != null) {
-            return new ChatDbo(c.getId(), c.getTitle(), c.getRecipient(), c.getSender(), c.getMessages(), c.getHandshakes());
+            return new ChatDbo(c.getId(), c.getTitle(), c.getRecipient(), c.getSender());
+        }
+        return null;
+    }
+
+    @Nullable
+    public static Handshake convert(HandshakeDbo h) {
+        if (h != null) {
+            Handshake h1 = new Handshake();
+            h1.setId(h.getId());
+            h1.setChat(h.getChat());
+            h1.setDate(h.getDate());
+            h1.setReceiver(h.getReceiver());
+            h1.setSender(h.getSender());
+            h1.setKey(h.getKey());
+            h1.setIv(h.getIv());
+            return h1;
+        }
+        return null;
+    }
+
+    @Nullable
+    public static HandshakeDbo convert(Handshake h) {
+        if (h != null) {
+            return new HandshakeDbo(h.getId(), h.getSender(), h.getReceiver(), h.getDate(), h.getChat(), h.getKey(), h.getIv());
         }
         return null;
     }

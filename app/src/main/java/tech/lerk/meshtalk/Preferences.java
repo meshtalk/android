@@ -1,4 +1,4 @@
-package tech.lerk.meshtalk.entities;
+package tech.lerk.meshtalk;
 
 import androidx.annotation.NonNull;
 
@@ -15,7 +15,8 @@ public enum Preferences {
     MESSAGE_GATEWAY_PATH("message_gateway_path"),
     MESSAGE_GATEWAY_PORT("message_gateway_port"),
     MESSAGE_GATEWAY_PROTOCOL("message_gateway_protocol"),
-    TOAST_MESSAGE_SENT("toast_message_sent");
+    TOAST_MESSAGE_SENT("toast_message_sent"),
+    TOAST_FETCH_ERRORS("toast_fetch_errors");
 
     private final String key;
 

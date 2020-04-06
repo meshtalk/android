@@ -9,7 +9,7 @@ import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
 import tech.lerk.meshtalk.R;
-import tech.lerk.meshtalk.entities.Preferences;
+import tech.lerk.meshtalk.Preferences;
 
 public abstract class GatewayWorker extends Worker {
 

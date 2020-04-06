@@ -6,7 +6,6 @@ import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ImageView;
@@ -36,11 +35,11 @@ import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Objects;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.UUID;
 
 import im.delight.android.identicons.Identicon;
-import tech.lerk.meshtalk.entities.Preferences;
-import tech.lerk.meshtalk.exceptions.DecryptionException;
 import tech.lerk.meshtalk.providers.impl.IdentityProvider;
 import tech.lerk.meshtalk.ui.UpdatableFragment;
 import tech.lerk.meshtalk.workers.DataKeys;
@@ -214,8 +213,7 @@ public class MainActivity extends AppCompatActivity {
     private void updateNavHeaderIdentity() {
         String defaultIdentityId = preferences.getString(Preferences.DEFAULT_IDENTITY.toString(), "");
         if (!defaultIdentityId.equals("")) {
-            AsyncTask.execute(() -> {
-                try {
+            AsyncTask.execute(() ->
                     IdentityProvider.get(this).getById(UUID.fromString(defaultIdentityId), defaultIdentity ->
                             MainActivity.this.runOnUiThread(() -> {
                                 Identicon identicon = navigationView.getHeaderView(0).findViewById(R.id.nav_header_identicon);
@@ -230,17 +228,14 @@ public class MainActivity extends AppCompatActivity {
                                     name.setText(R.string.nav_header_title);
                                     publicKey.setText(R.string.nav_header_subtitle);
                                 }
-                            }));
-                } catch (DecryptionException e) {
-                    Log.w(TAG, "Error getting default identity!", e);
-                }
-            });
+                            })));
         }
     }
 
     private void noIdentitiesCheckpoint() {
         AppExecutors.getInstance().diskIO().execute(() ->
-                IdentityProvider.get(getApplicationContext()).getAll(ids ->
+                IdentityProvider.get(getApplicationContext()).getAll(ids -> {
+                    if (ids != null) {
                         MainActivity.this.runOnUiThread(() -> {
                             if (ids.size() < 1) {
                                 navController.navigate(R.id.nav_item_identities);
@@ -248,12 +243,23 @@ public class MainActivity extends AppCompatActivity {
                                 updateNavHeader();
                                 startWorkers();
                             }
-                        })));
+                        });
+                    } else {
+                        navController.navigate(R.id.nav_item_identities);
+                    }
+                }));
     }
 
     public void startWorkers() {
         if (preferences.getString(Preferences.DEFAULT_IDENTITY.toString(), null) != null) {
-            startService(new Intent(getApplicationContext(), MessagesService.class));
+            Timer t = new Timer();
+            t.scheduleAtFixedRate(new TimerTask() {
+                @Override
+                public void run() {
+                    startService(new Intent(getApplicationContext(), MessagesService.class));
+                }
+            }, 0, 15000);
+
         } else {
             Toast.makeText(getApplicationContext(), R.string.info_fetching_messages_no_default_identity, Toast.LENGTH_LONG).show();
         }

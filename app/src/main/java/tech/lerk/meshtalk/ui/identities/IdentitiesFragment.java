@@ -49,7 +49,7 @@ import tech.lerk.meshtalk.MainActivity;
 import tech.lerk.meshtalk.R;
 import tech.lerk.meshtalk.Stuff;
 import tech.lerk.meshtalk.entities.Identity;
-import tech.lerk.meshtalk.entities.Preferences;
+import tech.lerk.meshtalk.Preferences;
 import tech.lerk.meshtalk.exceptions.EncryptionException;
 import tech.lerk.meshtalk.providers.impl.ContactProvider;
 import tech.lerk.meshtalk.providers.impl.IdentityProvider;
@@ -293,7 +293,7 @@ public class IdentitiesFragment extends UpdatableFragment {
                     loadingDialog.get().dismiss();
                     updateViews();
                 });
-            } catch (NoSuchAlgorithmException | EncryptionException e) {
+            } catch (NoSuchAlgorithmException e) {
                 requireActivity().runOnUiThread(() -> loadingDialog.get().dismiss());
                 Log.e(TAG, "Unable to create new identity!", e);
             }

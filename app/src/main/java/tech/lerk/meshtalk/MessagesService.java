@@ -22,9 +22,8 @@ import com.google.gson.Gson;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Base64;
-import java.util.HashMap;
-import java.util.TreeSet;
 import java.util.UUID;
 
 import javax.crypto.BadPaddingException;
@@ -37,12 +36,10 @@ import javax.crypto.spec.SecretKeySpec;
 import tech.lerk.meshtalk.entities.Chat;
 import tech.lerk.meshtalk.entities.Handshake;
 import tech.lerk.meshtalk.entities.Identity;
-import tech.lerk.meshtalk.entities.Preferences;
-import tech.lerk.meshtalk.exceptions.DecryptionException;
 import tech.lerk.meshtalk.providers.impl.ChatProvider;
 import tech.lerk.meshtalk.providers.impl.ContactProvider;
+import tech.lerk.meshtalk.providers.impl.HandshakeProvider;
 import tech.lerk.meshtalk.providers.impl.IdentityProvider;
-import tech.lerk.meshtalk.providers.impl.MessageProvider;
 import tech.lerk.meshtalk.workers.DataKeys;
 import tech.lerk.meshtalk.workers.FetchHandshakesWorker;
 import tech.lerk.meshtalk.workers.FetchMessagesWorker;
@@ -57,6 +54,7 @@ public class MessagesService extends LifecycleService {
     private ChatProvider chatProvider;
     private ContactProvider contactProvider;
     private IdentityProvider identityProvider;
+    private HandshakeProvider handshakeProvider;
 
     private void startFetchMessageWorker() {
         OneTimeWorkRequest fetchMessagesRequest = new OneTimeWorkRequest
@@ -74,21 +72,15 @@ public class MessagesService extends LifecycleService {
                     case FetchMessagesWorker.ERROR_URI:
                     case FetchMessagesWorker.ERROR_CONNECTION:
                     case FetchMessagesWorker.ERROR_PARSING:
-                        String msg = "Got error " + errorCode + " while fetching messages!";
-                        Log.e(TAG, msg);
-                        Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
-                        break;
                     case FetchMessagesWorker.ERROR_NOT_FOUND:
-                        Log.i(TAG, "No messages found on gateway.");
+                        String msg = "Got error " + errorCode + " while fetching messages!";
+                        Log.w(TAG, msg);
+                        if (preferences.getBoolean(Preferences.TOAST_FETCH_ERRORS.toString(), true)) {
+                            Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
+                        }
                         break;
                     case FetchMessagesWorker.ERROR_NONE:
-                        AsyncTask.execute(() -> {
-                            for (int i = 0; i < data.getInt(DataKeys.MESSAGE_LIST_SIZE.toString(), 0); i++) {
-                                tech.lerk.meshtalk.entities.Message message = gson.fromJson(data.getString(DataKeys.MESSAGE_LIST_ELEMENT_PREFIX + String.valueOf(i)), tech.lerk.meshtalk.entities.Message.class);
-                                MessageProvider.get(getApplicationContext()).save(message);
-                            }
-                            MainActivity.maybeUpdateViews();
-                        });
+                        Log.i(TAG, "Messages fetched successfully!");
                         break;
                     default:
                         Log.wtf(TAG, "Invalid error code: " + errorCode + "!");
@@ -111,122 +103,103 @@ public class MessagesService extends LifecycleService {
                         chat.setRecipient(handshake.getSender());
                         chat.setSender(handshake.getReceiver());
                         chat.setTitle(chatName);
-                        chat.setHandshakes(new HashMap<>());
-                        chat.setMessages(new TreeSet<>());
-                    }
-                    HashMap<UUID, Handshake> handshakes = chat.getHandshakes();
-
-                    Handshake maybeExistingHandshake = handshakes.get(handshake.getReceiver());
-                    if (maybeExistingHandshake != null && maybeExistingHandshake.getId().equals(handshake.getId())) {
-                        return; // we already have this one.
+                        chatProvider.save(chat);
                     }
 
-                    handshakes.put(handshake.getReceiver(), handshake);
-                    if (handshakes.get(handshake.getSender()) == null) { // if we haven't sent a handshake yet...
-                        replyToHandshake(handshake, chat);
-                    }
-                    chat.setHandshakes(handshakes);
-                    chatProvider.save(chat);
+                    handshakeProvider.save(handshake);
+
+                    final Chat chat1 = chat;
+                    handshakeProvider.getLatestByReceiver(handshake.getSender(), reply -> {
+                        if (reply == null) { // if we haven't sent a handshake in return yet...
+                            replyToHandshake(handshake, chat1);
+                        }
+                    });
+
                     MainActivity.maybeUpdateViews();
                 }));
     }
 
     private void replyToHandshake(Handshake handshake, Chat chat) {
-        try {
-            identityProvider.getById(handshake.getReceiver(), handshakeIdentity -> {
-                if (handshakeIdentity != null) {
-                    SecretKey secretKey = getSecretKeyFromHandshake(handshake, handshakeIdentity);
-                    if (secretKey != null) {
-                        try {
-                            Cipher cipher = Cipher.getInstance("RSA");
-                            contactProvider.getById(handshake.getSender(), contactById -> {
-                                try {
-                                    if (contactById != null) {
-                                        cipher.init(Cipher.ENCRYPT_MODE, contactById.getPublicKey());
+        identityProvider.getById(handshake.getReceiver(), handshakeIdentity -> {
+            if (handshakeIdentity != null) {
+                SecretKey secretKey = getSecretKeyFromHandshake(handshake, handshakeIdentity);
+                if (secretKey != null) {
+                    try {
+                        Cipher cipher = Cipher.getInstance("RSA");
+                        contactProvider.getById(handshake.getSender(), contactById -> {
+                            try {
+                                if (contactById != null) {
+                                    cipher.init(Cipher.ENCRYPT_MODE, contactById.getPublicKey());
 
-                                        Handshake handshakeReply = new Handshake();
-                                        handshakeReply.setId(UUID.randomUUID());
-                                        handshakeReply.setChat(chat.getId());
-                                        handshakeReply.setReceiver(chat.getRecipient());
-                                        handshakeReply.setSender(chat.getSender());
-                                        handshakeReply.setKey(Base64.getMimeEncoder().encodeToString(cipher.doFinal(secretKey.getEncoded())));
-                                        handshakeReply.setIv(Base64.getEncoder().encodeToString(cipher.doFinal(getIvFromHandshake(handshake, handshakeIdentity))));
-                                        handshakeReply.setDate(LocalDateTime.now());
+                                    Data handshakeData = new Data.Builder()
+                                            .putString(DataKeys.HANDSHAKE_ID.toString(), UUID.randomUUID().toString())
+                                            .putString(DataKeys.HANDSHAKE_CHAT.toString(), chat.getId().toString())
+                                            .putString(DataKeys.HANDSHAKE_SENDER.toString(), chat.getSender().toString())
+                                            .putString(DataKeys.HANDSHAKE_RECEIVER.toString(), chat.getRecipient().toString())
+                                            .putLong(DataKeys.HANDSHAKE_DATE.toString(), LocalDateTime.now().toEpochSecond(ZoneOffset.UTC))
+                                            .putString(DataKeys.HANDSHAKE_KEY.toString(), Base64.getMimeEncoder().encodeToString(cipher.doFinal(secretKey.getEncoded())))
+                                            .putString(DataKeys.HANDSHAKE_IV.toString(), Base64.getMimeEncoder().encodeToString(cipher.doFinal(getIvFromHandshake(handshake, handshakeIdentity))))
+                                            .build();
 
-                                        HashMap<UUID, Handshake> handshakes1 = chat.getHandshakes();
-                                        handshakes1.put(chat.getRecipient(), handshakeReply);
-                                        chat.setHandshakes(handshakes1);
-                                        chatProvider.save(chat);
+                                    OneTimeWorkRequest sendHandshakeWorkRequest = new OneTimeWorkRequest.Builder(SubmitHandshakeWorker.class)
+                                            .setInputData(handshakeData).build();
+                                    WorkManager workManager = WorkManager.getInstance(this);
+                                    workManager.enqueue(sendHandshakeWorkRequest);
 
-                                        Data handshakeData = new Data.Builder()
-                                                .putString(DataKeys.HANDSHAKE_ID.toString(), handshakeReply.getId().toString())
-                                                .putString(DataKeys.HANDSHAKE_CHAT.toString(), handshakeReply.getChat().toString())
-                                                .putString(DataKeys.HANDSHAKE_SENDER.toString(), handshakeReply.getSender().toString())
-                                                .putString(DataKeys.HANDSHAKE_RECEIVER.toString(), handshakeReply.getReceiver().toString())
-                                                .putString(DataKeys.HANDSHAKE_DATE.toString(), handshakeReply.getDate().toString())
-                                                .putString(DataKeys.HANDSHAKE_KEY.toString(), handshakeReply.getKey())
-                                                .putString(DataKeys.HANDSHAKE_IV.toString(), handshakeReply.getIv())
-                                                .build();
-
-                                        OneTimeWorkRequest sendHandshakeWorkRequest = new OneTimeWorkRequest.Builder(SubmitHandshakeWorker.class)
-                                                .setInputData(handshakeData).build();
-                                        WorkManager workManager = WorkManager.getInstance(this);
-                                        workManager.enqueue(sendHandshakeWorkRequest);
-
-                                        MainActivity.maybeRunOnUiThread(() ->
-                                                workManager.getWorkInfoByIdLiveData(sendHandshakeWorkRequest.getId()).observe(this, info -> {
-                                                    if (info != null && info.getState().isFinished()) {
-                                                        Data data = info.getOutputData();
-                                                        int errorCode = data.getInt(DataKeys.ERROR_CODE.toString(), -1);
-                                                        switch (errorCode) {
-                                                            case SubmitHandshakeWorker.ERROR_INVALID_SETTINGS:
-                                                            case SubmitHandshakeWorker.ERROR_URI:
-                                                            case SubmitHandshakeWorker.ERROR_CONNECTION:
-                                                            case SubmitHandshakeWorker.ERROR_PARSING:
-                                                                String msg = "Got error " + errorCode + " while sending handshake!";
-                                                                Log.e(TAG, msg);
-                                                                Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
-                                                                break;
-                                                            case SubmitHandshakeWorker.ERROR_NONE:
-                                                            default:
+                                    MainActivity.maybeRunOnUiThread(() ->
+                                            workManager.getWorkInfoByIdLiveData(sendHandshakeWorkRequest.getId()).observe(this, info -> {
+                                                if (info != null && info.getState().isFinished()) {
+                                                    Data data = info.getOutputData();
+                                                    int errorCode = data.getInt(DataKeys.ERROR_CODE.toString(), -1);
+                                                    switch (errorCode) {
+                                                        case SubmitHandshakeWorker.ERROR_INVALID_SETTINGS:
+                                                        case SubmitHandshakeWorker.ERROR_URI:
+                                                        case SubmitHandshakeWorker.ERROR_CONNECTION:
+                                                        case SubmitHandshakeWorker.ERROR_PARSING:
+                                                            String msg = "Got error " + errorCode + " while sending handshake!";
+                                                            Log.e(TAG, msg);
+                                                            Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
+                                                            break;
+                                                        case SubmitHandshakeWorker.ERROR_NONE:
+                                                        default:
+                                                            if (preferences.getBoolean(Preferences.TOAST_MESSAGE_SENT.toString(), true)) {
                                                                 Toast.makeText(getApplicationContext(), R.string.success_sending_handshake, Toast.LENGTH_LONG).show();
-                                                                break;
-                                                        }
+                                                            }
+                                                            break;
                                                     }
-                                                })
-                                        );
-                                    } else {
-                                        Log.e(TAG, "Contact is null!");
-                                        MainActivity.maybeRunOnUiThread(() -> Toast.makeText(getApplicationContext(),
-                                                R.string.error_unknown_contact, Toast.LENGTH_LONG).show());
-                                    }
-                                } catch (InvalidKeyException e) {
-                                    Log.e(TAG, "Unable to init Cipher!", e);
-                                } catch (BadPaddingException | IllegalBlockSizeException e) {
-                                    Log.e(TAG, "Unable to encrypt handshake!", e);
+                                                }
+                                            })
+                                    );
+                                } else {
+                                    Log.e(TAG, "Contact is null!");
+                                    MainActivity.maybeRunOnUiThread(() -> Toast.makeText(getApplicationContext(),
+                                            R.string.error_unknown_contact, Toast.LENGTH_LONG).show());
                                 }
-                            });
-                        } catch (NoSuchAlgorithmException e) {
-                            Log.wtf(TAG, "Unable to get KeyGenerator!", e);
-                        } catch (NoSuchPaddingException e) {
-                            Log.wtf(TAG, "Unable to get Cipher!", e);
-                        }
-                    } else {
-                        String msg = "Secret key is null!";
-                        Log.e(TAG, msg);
-                        MainActivity.maybeRunOnUiThread(() -> Toast.makeText(getApplicationContext(),
-                                msg, Toast.LENGTH_LONG).show());
+                            } catch (InvalidKeyException e) {
+                                Log.e(TAG, "Unable to init Cipher!", e);
+                            } catch (BadPaddingException | IllegalBlockSizeException e) {
+                                Log.e(TAG, "Unable to encrypt handshake!", e);
+                            }
+                        });
+                    } catch (NoSuchAlgorithmException e) {
+                        Log.wtf(TAG, "Unable to get KeyGenerator!", e);
+                    } catch (NoSuchPaddingException e) {
+                        Log.wtf(TAG, "Unable to get Cipher!", e);
                     }
                 } else {
-                    String msg = "Identity is null!";
+                    String msg = "Secret key is null!";
                     Log.e(TAG, msg);
                     MainActivity.maybeRunOnUiThread(() -> Toast.makeText(getApplicationContext(),
                             msg, Toast.LENGTH_LONG).show());
                 }
-            });
-        } catch (DecryptionException e) {
-            Log.e(TAG, "Unable to decrypt identity!", e);
-        }
+            } else {
+                String msg = "Identity is null!";
+                Log.e(TAG, msg);
+                MainActivity.maybeRunOnUiThread(() -> Toast.makeText(getApplicationContext(),
+                        msg, Toast.LENGTH_LONG).show());
+            }
+        });
+
     }
 
     private void startFetchHandshakeWorker() {
@@ -247,7 +220,9 @@ public class MessagesService extends LifecycleService {
                     case FetchHandshakesWorker.ERROR_PARSING:
                         String msg = "Got error " + errorCode + " while fetching handshakes!";
                         Log.e(TAG, msg);
-                        Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
+                        if (preferences.getBoolean(Preferences.TOAST_FETCH_ERRORS.toString(), true)) {
+                            Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
+                        }
                         break;
                     case FetchHandshakesWorker.ERROR_NOT_FOUND:
                     case FetchHandshakesWorker.ERROR_NONE:
@@ -321,6 +296,7 @@ public class MessagesService extends LifecycleService {
         chatProvider = ChatProvider.get(getApplicationContext());
         contactProvider = ContactProvider.get(getApplicationContext());
         identityProvider = IdentityProvider.get(getApplicationContext());
+        handshakeProvider = HandshakeProvider.get(getApplicationContext());
         preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
     }
 
@@ -335,7 +311,7 @@ public class MessagesService extends LifecycleService {
             startFetchHandshakeWorker();
             startFetchMessageWorker();
         } else {
-            //TODO: implement
+            //TODO: implement mesh stuff
         }
 
         // If we get killed, after returning from here, restart

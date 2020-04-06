@@ -1,16 +1,11 @@
-package tech.lerk.meshtalk.entities.db;
+package tech.lerk.meshtalk.db.entities;
 
 import androidx.annotation.NonNull;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
-import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
 
-import java.util.HashMap;
-import java.util.Set;
 import java.util.UUID;
-
-import tech.lerk.meshtalk.entities.Handshake;
 
 @Entity(tableName = "chat")
 public class ChatDbo {
@@ -28,32 +23,20 @@ public class ChatDbo {
     @ColumnInfo(name = "sender")
     private UUID sender;
 
-    @ColumnInfo(name = "messages")
-    private Set<UUID> messages;
-
-    @ColumnInfo(name = "handshakes")
-    private HashMap<UUID, Handshake> handshakes;
-
-    public ChatDbo(UUID id, String title, UUID recipient, UUID sender, Set<UUID> messages, HashMap<UUID, Handshake> handshakes) {
+    public ChatDbo(@NonNull UUID id, String title, UUID recipient, UUID sender) {
         this.id = id;
         this.title = title;
         this.recipient = recipient;
         this.sender = sender;
-        this.messages = messages;
-        this.handshakes = handshakes;
     }
 
-    @Ignore
-    public ChatDbo() {
-    }
-
-
+    @NonNull
     public UUID getId() {
         return id;
     }
 
 
-    public void setId(UUID id) {
+    public void setId(@NonNull UUID id) {
         this.id = id;
     }
 
@@ -85,25 +68,5 @@ public class ChatDbo {
 
     public void setSender(UUID sender) {
         this.sender = sender;
-    }
-
-
-    public Set<UUID> getMessages() {
-        return messages;
-    }
-
-
-    public void setMessages(Set<UUID> messages) {
-        this.messages = messages;
-    }
-
-
-    public HashMap<UUID, Handshake> getHandshakes() {
-        return handshakes;
-    }
-
-
-    public void setHandshakes(HashMap<UUID, Handshake> handshakes) {
-        this.handshakes = handshakes;
     }
 }

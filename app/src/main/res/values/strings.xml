@@ -162,4 +162,11 @@
     <string name="pref_title_toast_message_sent">Toast on message sent</string>
     <string name="pref_summary_toast_message_sent">If enabled, a Toast will be shown in case a message was sent successfully.</string>
     <string name="error_unable_to_decrypt_message">Unable to decrypt message!</string>
+    <string name="message_list_empty">No Messages…</string>
+    <string name="list_item_mesage_contact_name_label" translatable="false" />
+    <string name="list_item_message_message_label" translatable="false" />
+    <string name="error_loading_contact">Error loading contact!</string>
+    <string name="pref_summary_toast_fetch_errors">When activated, a Toast will be shown when any fetch operation errors.</string>
+    <string name="pref_title_toast_fetch_errors">Toast Fetch Errors</string>
+    <string name="list_item_mesage_message_time">YYYY-MM-DD HH:mm:ss</string>
 </resources>

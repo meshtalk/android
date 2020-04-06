@@ -30,7 +30,7 @@ import java.util.ArrayList;
 import tech.lerk.meshtalk.R;
 import tech.lerk.meshtalk.Utils;
 import tech.lerk.meshtalk.entities.Handshake;
-import tech.lerk.meshtalk.entities.Preferences;
+import tech.lerk.meshtalk.Preferences;
 
 public class FetchHandshakesWorker extends GatewayWorker {
     private static final String TAG = FetchHandshakesWorker.class.getCanonicalName();
@@ -103,7 +103,7 @@ public class FetchHandshakesWorker extends GatewayWorker {
             try (InputStream io = connection.getInputStream()) {
                 return new Pair<>(ERROR_NONE, gson.fromJson(new JsonReader(new InputStreamReader(io)), getHandshakeListType()));
             } catch (JsonSyntaxException | JsonIOException e) {
-                Log.e(TAG, "Unable to parse gateway metadata!", e);
+                Log.e(TAG, "Unable to parse gateway response!", e);
                 return new Pair<>(ERROR_PARSING, new ArrayList<>());
             } finally {
                 connection.disconnect();
@@ -127,7 +127,7 @@ public class FetchHandshakesWorker extends GatewayWorker {
             try (InputStream io = connection.getInputStream()) {
                 return new Pair<>(ERROR_NONE, gson.fromJson(new JsonReader(new InputStreamReader(io)), getHandshakeListType()));
             } catch (JsonSyntaxException | JsonIOException e) {
-                Log.e(TAG, "Unable to parse gateway metadata!", e);
+                Log.e(TAG, "Unable to parse gateway response!", e);
                 return new Pair<>(ERROR_PARSING, new ArrayList<>());
             } finally {
                 connection.disconnect();

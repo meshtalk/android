@@ -40,7 +40,7 @@ public class ChatProvider extends DatabaseProvider<Chat> {
 
     @Override
     public void deleteById(UUID id) {
-        database.chatDao().deleteChatbyId(id);
+        database.chatDao().deleteChatById(id);
     }
 
     @Override

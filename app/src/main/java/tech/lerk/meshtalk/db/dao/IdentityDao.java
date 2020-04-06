@@ -10,7 +10,7 @@ import androidx.room.Update;
 import java.util.List;
 import java.util.UUID;
 
-import tech.lerk.meshtalk.entities.db.IdentityDbo;
+import tech.lerk.meshtalk.db.entities.IdentityDbo;
 
 @Dao
 public interface IdentityDao {

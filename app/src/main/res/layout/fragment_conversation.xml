@@ -5,11 +5,19 @@
     android:layout_height="match_parent"
     tools:context=".ui.conversation.ConversationFragment">
 
-    <com.stfalcon.chatkit.messages.MessagesList
-        android:id="@+id/message_list_view"
+    <ListView android:id="@+id/message_list_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true" />
+
+    <TextView
+        android:id="@+id/message_list_empty"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/message_list_empty"
+        android:visibility="invisible"
+        android:layout_centerVertical="true"
         android:layout_centerHorizontal="true" />
 
     <RelativeLayout
@@ -20,7 +28,7 @@
         android:paddingStart="8dp"
         android:paddingEnd="8dp">
 
-        <EditText
+        <androidx.emoji.widget.EmojiEditText
             android:id="@+id/message_edit_text"
             android:layout_width="match_parent"
             android:layout_height="match_parent"

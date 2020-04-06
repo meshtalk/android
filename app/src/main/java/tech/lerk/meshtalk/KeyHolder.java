@@ -22,8 +22,6 @@ import java.util.Objects;
 
 import javax.crypto.KeyGenerator;
 
-import tech.lerk.meshtalk.entities.Preferences;
-
 public class KeyHolder {
     private static final String TAG = KeyHolder.class.getCanonicalName();
     private KeyStore keyStore;

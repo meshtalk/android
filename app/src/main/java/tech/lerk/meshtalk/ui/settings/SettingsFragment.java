@@ -16,7 +16,7 @@ import java.util.Objects;
 
 import tech.lerk.meshtalk.KeyHolder;
 import tech.lerk.meshtalk.R;
-import tech.lerk.meshtalk.entities.Preferences;
+import tech.lerk.meshtalk.Preferences;
 import tech.lerk.meshtalk.providers.impl.ChatProvider;
 import tech.lerk.meshtalk.providers.impl.ContactProvider;
 import tech.lerk.meshtalk.providers.impl.IdentityProvider;

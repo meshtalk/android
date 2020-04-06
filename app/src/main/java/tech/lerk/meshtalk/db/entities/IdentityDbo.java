@@ -1,4 +1,4 @@
-package tech.lerk.meshtalk.entities.db;
+package tech.lerk.meshtalk.db.entities;
 
 import androidx.annotation.NonNull;
 import androidx.room.ColumnInfo;
@@ -18,20 +18,17 @@ public class IdentityDbo {
     @ColumnInfo(name = "encrypted")
     private String encrypted;
 
-    public IdentityDbo(UUID id, String encrypted) {
+    public IdentityDbo(@NonNull UUID id, String encrypted) {
         this.id = id;
         this.encrypted = encrypted;
     }
 
-    @Ignore
-    public IdentityDbo() {
-    }
-
+    @NonNull
     public UUID getId() {
         return id;
     }
 
-    public void setId(UUID id) {
+    public void setId(@NonNull UUID id) {
         this.id = id;
     }
 

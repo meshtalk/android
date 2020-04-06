@@ -26,10 +26,12 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 
+import tech.lerk.meshtalk.Callback;
 import tech.lerk.meshtalk.R;
 import tech.lerk.meshtalk.Utils;
 import tech.lerk.meshtalk.entities.Message;
-import tech.lerk.meshtalk.entities.Preferences;
+import tech.lerk.meshtalk.Preferences;
+import tech.lerk.meshtalk.providers.impl.MessageProvider;
 
 public class FetchMessagesWorker extends GatewayWorker {
     private static final String TAG = FetchMessagesWorker.class.getCanonicalName();
@@ -47,44 +49,73 @@ public class FetchMessagesWorker extends GatewayWorker {
     @Override
     public Result doWork() {
         GatewayInfo gatewayInfo = getGatewayInfo();
-        int errorCode = ERROR_INVALID_SETTINGS;
         String defaultdentityString = preferences.getString(Preferences.DEFAULT_IDENTITY.toString(), null);
         if (defaultdentityString != null) {
-            errorCode = ERROR_NONE;
-            String hostString = gatewayInfo.toString() + "/messages/receiver/" + defaultdentityString;
             if (Looper.myLooper() == null) {
                 Looper.prepare();
             }
             Toast.makeText(getApplicationContext(), R.string.info_fetching_messages, Toast.LENGTH_SHORT).show();
-            try {
-                URL gatewayMetaUrl = new URL(hostString);
-                HttpURLConnection connection = (HttpURLConnection) gatewayMetaUrl.openConnection();
-                try (InputStream io = connection.getInputStream()) {
-                    ArrayList<Message> messages = gson.fromJson(new JsonReader(new InputStreamReader(io)), getMessageListType());
-                    Data.Builder dataBuilder = new Data.Builder().putInt(DataKeys.ERROR_CODE.toString(), errorCode);
-                    dataBuilder.putInt(DataKeys.MESSAGE_LIST_SIZE.toString(), messages.size());
-                    for (int i = 0; i < messages.size(); i++) {
-                        dataBuilder.putString(DataKeys.MESSAGE_LIST_ELEMENT_PREFIX + String.valueOf(i), gson.toJson(messages.get(i)));
-                    }
-                    return ListenableWorker.Result.success(dataBuilder.build());
-                } catch (JsonSyntaxException | JsonIOException e) {
-                    Log.e(TAG, "Unable to parse gateway metadata!", e);
-                    errorCode = ERROR_PARSING;
-                } finally {
-                    connection.disconnect();
-                }
-            } catch (MalformedURLException e) {
-                Log.e(TAG, "Unable to parse uri: '" + hostString + "'!", e);
-                errorCode = ERROR_URI;
-            } catch (FileNotFoundException e) {
-                Log.i(TAG, "No messages found for: '" + defaultdentityString + "'!");
-                errorCode = ERROR_NOT_FOUND;
-            } catch (IOException e) {
-                Log.e(TAG, "Unable to open connection to: '" + hostString + "'!", e);
-                errorCode = ERROR_CONNECTION;
+            final String receiverUrl = gatewayInfo.toString() + "/messages/receiver/" + defaultdentityString;
+            final String senderUrl = gatewayInfo.toString() + "/messages/sender/" + defaultdentityString;
+            final boolean[] isDone = {false};
+            final int[] code = {ERROR_INVALID_SETTINGS};
+            MessageProvider messageProvider = MessageProvider.get(getApplicationContext());
+            fetchMessages(receiverUrl, (recData, recErr) ->
+                    fetchMessages(senderUrl, (sndData, sndErr) -> {
+                        if (recErr != null && sndErr != null) {
+                            if (sndData != null) {
+                                sndData.forEach(messageProvider::save);
+                            }
+                            if (recData != null) {
+                                recData.forEach(messageProvider::save);
+                            }
+                            code[0] = Math.max(sndErr, recErr);
+                            isDone[0] = true;
+                        } else {
+                            Log.wtf(TAG, "If you see this in your log, good luck...");
+                        }
+                    }));
+            while (!isDone[0]) {
+                Thread.yield();
             }
+            return ListenableWorker.Result.success(new Data.Builder().putInt(DataKeys.ERROR_CODE.toString(), code[0]).build());
         }
-        return ListenableWorker.Result.failure(new Data.Builder().putInt(DataKeys.ERROR_CODE.toString(), errorCode).build());
+        return ListenableWorker.Result.failure(new Data.Builder().putInt(DataKeys.ERROR_CODE.toString(), ERROR_INVALID_SETTINGS).build());
+    }
+
+    private void fetchMessages(String url, Callback.Multi<ArrayList<Message>, Integer> callback) {
+        try {
+            doMessageRequest(url, data -> {
+                if (data != null) {
+                    callback.call(data, ERROR_NONE);
+                } else {
+                    Log.e(TAG, "Unable to parse gateway response!");
+                    callback.call(null, ERROR_PARSING);
+                }
+            });
+        } catch (MalformedURLException e) {
+            Log.e(TAG, "Unable to parse uri: '" + url + "'!", e);
+            callback.call(null, ERROR_URI);
+        } catch (FileNotFoundException e) {
+            Log.i(TAG, "No messages found for: '" + url + "'!");
+            callback.call(null, ERROR_NOT_FOUND);
+        } catch (IOException e) {
+            Log.e(TAG, "Unable to open connection to: '" + url + "'!", e);
+            callback.call(null, ERROR_CONNECTION);
+        }
+    }
+
+    private void doMessageRequest(String url, Callback<ArrayList<Message>> callback) throws IOException {
+        URL gatewayMetaUrl = new URL(url);
+        HttpURLConnection connection = (HttpURLConnection) gatewayMetaUrl.openConnection();
+        try (InputStream io = connection.getInputStream()) {
+            callback.call(gson.fromJson(new JsonReader(new InputStreamReader(io)), getMessageListType()));
+        } catch (JsonSyntaxException | JsonIOException e) {
+            Log.w(TAG, "Unable to parse response of: '" + url + "'!", e);
+        } finally {
+            connection.disconnect();
+        }
+        callback.call(null);
     }
 
     private Type getMessageListType() {

@@ -1,4 +1,4 @@
-package tech.lerk.meshtalk.entities.db;
+package tech.lerk.meshtalk.db.entities;
 
 import androidx.annotation.NonNull;
 import androidx.room.ColumnInfo;
@@ -9,8 +9,8 @@ import androidx.room.PrimaryKey;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-@Entity(tableName = "message")
-public class MessageDbo {
+@Entity(tableName = "handshake")
+public class HandshakeDbo {
     @NonNull
     @PrimaryKey
     @ColumnInfo(name = "id")
@@ -28,27 +28,28 @@ public class MessageDbo {
     @ColumnInfo(name = "chat")
     private UUID chat;
 
-    @ColumnInfo(name = "content")
-    private String content;
+    @ColumnInfo(name = "key")
+    private String key;
 
-    public MessageDbo(UUID id, UUID sender, UUID receiver, LocalDateTime date, UUID chat, String content) {
+    @ColumnInfo(name = "iv")
+    private String iv;
+
+    public HandshakeDbo(@NonNull UUID id, UUID sender, UUID receiver, LocalDateTime date, UUID chat, String key, String iv) {
         this.id = id;
         this.sender = sender;
         this.receiver = receiver;
         this.date = date;
         this.chat = chat;
-        this.content = content;
+        this.key = key;
+        this.iv = iv;
     }
 
-    @Ignore
-    public MessageDbo() {
-    }
-
+    @NonNull
     public UUID getId() {
         return id;
     }
 
-    public void setId(UUID id) {
+    public void setId(@NonNull UUID id) {
         this.id = id;
     }
 
@@ -84,11 +85,19 @@ public class MessageDbo {
         this.chat = chat;
     }
 
-    public String getContent() {
-        return content;
+    public String getKey() {
+        return key;
     }
 
-    public void setContent(String content) {
-        this.content = content;
+    public void setKey(String key) {
+        this.key = key;
+    }
+
+    public String getIv() {
+        return iv;
+    }
+
+    public void setIv(String iv) {
+        this.iv = iv;
     }
 }

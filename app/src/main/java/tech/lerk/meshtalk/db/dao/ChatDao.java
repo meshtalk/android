@@ -10,7 +10,7 @@ import androidx.room.Update;
 import java.util.List;
 import java.util.UUID;
 
-import tech.lerk.meshtalk.entities.db.ChatDbo;
+import tech.lerk.meshtalk.db.entities.ChatDbo;
 
 @Dao
 public interface ChatDao {
@@ -21,10 +21,10 @@ public interface ChatDao {
     ChatDbo getChatById(UUID id);
 
     @Query("select * from chat where sender = :senderId")
-    ChatDbo getChatBySender(UUID senderId);
+    List<ChatDbo> getChatsBySender(UUID senderId);
 
     @Query("select * from chat where recipient = :recipientId")
-    ChatDbo getChatByRecipient(UUID recipientId);
+    List<ChatDbo> getChatsByRecipient(UUID recipientId);
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertChat(ChatDbo chat);
@@ -36,7 +36,7 @@ public interface ChatDao {
     void deleteChat(ChatDbo chat);
 
     @Query("delete from chat where id = :id")
-    void deleteChatbyId(UUID id);
+    void deleteChatById(UUID id);
 
     @Query("delete from chat where 1 = 1")
     void deleteAll();

@@ -10,7 +10,7 @@ import androidx.room.Update;
 import java.util.List;
 import java.util.UUID;
 
-import tech.lerk.meshtalk.entities.db.ContactDbo;
+import tech.lerk.meshtalk.db.entities.ContactDbo;
 
 @Dao
 public interface ContactDao {

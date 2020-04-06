@@ -14,7 +14,7 @@ import tech.lerk.meshtalk.Callback;
 import tech.lerk.meshtalk.KeyHolder;
 import tech.lerk.meshtalk.db.DatabaseEntityConverter;
 import tech.lerk.meshtalk.entities.Identity;
-import tech.lerk.meshtalk.entities.db.IdentityDbo;
+import tech.lerk.meshtalk.db.entities.IdentityDbo;
 import tech.lerk.meshtalk.exceptions.DecryptionException;
 import tech.lerk.meshtalk.exceptions.EncryptionException;
 import tech.lerk.meshtalk.providers.DatabaseProvider;
@@ -37,18 +37,27 @@ public class IdentityProvider extends DatabaseProvider<Identity> {
     }
 
     @Override
-    public void getById(UUID id, @NonNull Callback<Identity> callback) throws DecryptionException {
+    public void getById(UUID id, @NonNull Callback<Identity> callback) {
         IdentityDbo identityById = database.identityDao().getIdentityById(id);
         if (identityById == null) {
             callback.call(null);
         } else {
-            callback.call(DatabaseEntityConverter.convert(identityById, keyHolder));
+            try {
+                callback.call(DatabaseEntityConverter.convert(identityById, keyHolder));
+            } catch (DecryptionException e) {
+                Log.e(TAG, "Unable to decrypt identity!", e);
+                callback.call(null);
+            }
         }
     }
 
     @Override
-    public void save(Identity identity) throws EncryptionException {
-        database.identityDao().insertIdentity(DatabaseEntityConverter.convert(identity, keyHolder));
+    public void save(Identity identity)  {
+        try {
+            database.identityDao().insertIdentity(DatabaseEntityConverter.convert(identity, keyHolder));
+        } catch (EncryptionException e) {
+            Log.e(TAG, "Unable to save identity!", e);
+        }
     }
 
     @Override

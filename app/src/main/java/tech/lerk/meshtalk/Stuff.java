@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.os.AsyncTask;
 import android.util.Log;
-import tech.lerk.meshtalk.Callback;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
@@ -19,9 +18,8 @@ import java.security.interfaces.RSAPublicKey;
 import java.util.Base64;
 import java.util.UUID;
 
-import tech.lerk.meshtalk.entities.ui.UserDO;
+import tech.lerk.meshtalk.entities.Contact;
 import tech.lerk.meshtalk.exceptions.DecryptionException;
-import tech.lerk.meshtalk.providers.Provider;
 import tech.lerk.meshtalk.providers.impl.ContactProvider;
 import tech.lerk.meshtalk.providers.impl.IdentityProvider;
 
@@ -65,28 +63,6 @@ public class Stuff {
         byte[] reducedIV = new byte[12];
         System.arraycopy(deviceIV, 0, reducedIV, 0, reducedIV.length);
         return reducedIV;
-    }
-
-    public static void getUserDO(UUID uuid, Context context, Callback<UserDO> callback) {
-        ContactProvider contactProvider = ContactProvider.get(context);
-        IdentityProvider identityProvider = IdentityProvider.get(context);
-        try {
-            identityProvider.getById(uuid, i -> {
-                if (i != null) {
-                    callback.call(new UserDO(i.getId().toString(), i.getName()));
-                } else {
-                    contactProvider.getById(uuid, c -> {
-                        if (c != null) {
-                            callback.call(new UserDO(c.getId().toString(), c.getName()));
-                        } else {
-                            callback.call(null);
-                        }
-                    });
-                }
-            });
-        } catch (DecryptionException e) {
-            Log.i(TAG, "Unable to decrypt identity, probably not found...", e);
-        }
     }
 
     public static void determineSelfId(UUID sender, UUID recipient, IdentityProvider identityProvider, Callback<UUID> callback) {

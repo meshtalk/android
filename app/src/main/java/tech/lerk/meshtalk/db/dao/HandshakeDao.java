@@ -10,7 +10,7 @@ import androidx.room.Update;
 import java.util.List;
 import java.util.UUID;
 
-import tech.lerk.meshtalk.entities.db.HandshakeDbo;
+import tech.lerk.meshtalk.db.entities.HandshakeDbo;
 
 @Dao
 public interface HandshakeDao {
@@ -21,13 +21,13 @@ public interface HandshakeDao {
     HandshakeDbo getHandshakeById(UUID id);
 
     @Query("select * from handshake where sender = :senderId")
-    HandshakeDbo getHandshakeBySender(UUID senderId);
+    List<HandshakeDbo> getHandshakesBySender(UUID senderId);
 
     @Query("select * from handshake where receiver = :receiverId")
-    HandshakeDbo getHandshakeByReceiver(UUID receiverId);
+    List<HandshakeDbo> getHandshakesByReceiver(UUID receiverId);
 
     @Query("select * from handshake where chat = :chatId")
-    HandshakeDbo getHandshakeByChat(UUID chatId);
+    List<HandshakeDbo> getHandshakesByChat(UUID chatId);
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertHandshake(HandshakeDbo handshake);
@@ -40,4 +40,7 @@ public interface HandshakeDao {
 
     @Query("delete from handshake where 1 = 1")
     void deleteAll();
+
+    @Query("delete from handshake where id = :id")
+    void deleteHandshakeById(UUID id);
 }

@@ -23,16 +23,14 @@ import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.UUID;
 
 import im.delight.android.identicons.Identicon;
 import tech.lerk.meshtalk.MainActivity;
 import tech.lerk.meshtalk.R;
 import tech.lerk.meshtalk.entities.Chat;
 import tech.lerk.meshtalk.entities.Message;
-import tech.lerk.meshtalk.entities.Preferences;
+import tech.lerk.meshtalk.Preferences;
 import tech.lerk.meshtalk.providers.impl.ChatProvider;
-import tech.lerk.meshtalk.providers.impl.ContactProvider;
 import tech.lerk.meshtalk.providers.impl.MessageProvider;
 import tech.lerk.meshtalk.ui.UpdatableFragment;
 
@@ -86,10 +84,7 @@ public class ChatsFragment extends UpdatableFragment {
                                             .setNegativeButton(R.string.action_cancel, (d, w) -> d.dismiss())
                                             .setPositiveButton(R.string.action_yes, (d, w) -> {
                                                 d.dismiss();
-                                                Set<UUID> messages = chat.getMessages();
-                                                if (messages != null) {
-                                                    messages.forEach(id -> messageProvider.deleteById(id));
-                                                }
+                                                messageProvider.deleteByChat(chat.getId());
                                                 AsyncTask.execute(() -> {
                                                     chatProvider.deleteById(chat.getId());
                                                     updateViews();
@@ -115,15 +110,14 @@ public class ChatsFragment extends UpdatableFragment {
                         AsyncTask.execute(() -> {
                             Message latestMessage = messageProvider.getLatestMessage(chat);
                             if (latestMessage != null) {
-                                messageProvider.decryptMessage(latestMessage.getContent(), chat, latestMessageText -> {
-                                    requireActivity().runOnUiThread(() -> {
-                                        if (latestMessageText != null) {
-                                            latestMessageView.setText(latestMessageText);
-                                        } else {
-                                            latestMessageView.setText(R.string.error_unable_to_decrypt_message);
-                                        }
-                                    });
-                                });
+                                messageProvider.decryptMessage(latestMessage.getContent(), chat, latestMessageText ->
+                                        requireActivity().runOnUiThread(() -> {
+                                            if (latestMessageText != null) {
+                                                latestMessageView.setText(latestMessageText);
+                                            } else {
+                                                latestMessageView.setText(R.string.error_unable_to_decrypt_message);
+                                            }
+                                        }));
                             } else {
                                 requireActivity().runOnUiThread(() -> latestMessageView.setText(R.string.no_messages));
                             }

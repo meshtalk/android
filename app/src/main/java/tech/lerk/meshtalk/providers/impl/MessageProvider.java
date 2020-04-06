@@ -1,6 +1,7 @@
 package tech.lerk.meshtalk.providers.impl;
 
 import android.content.Context;
+import android.os.AsyncTask;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -9,8 +10,8 @@ import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
 import java.util.Base64;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
@@ -28,19 +29,19 @@ import tech.lerk.meshtalk.MessagesService;
 import tech.lerk.meshtalk.Stuff;
 import tech.lerk.meshtalk.db.DatabaseEntityConverter;
 import tech.lerk.meshtalk.entities.Chat;
-import tech.lerk.meshtalk.entities.Handshake;
 import tech.lerk.meshtalk.entities.Message;
-import tech.lerk.meshtalk.exceptions.DecryptionException;
 import tech.lerk.meshtalk.providers.DatabaseProvider;
 
 public class MessageProvider extends DatabaseProvider<Message> {
     private static final String TAG = MessageProvider.class.getCanonicalName();
     private static MessageProvider instance = null;
     private final IdentityProvider identityProvider;
+    private final HandshakeProvider handshakeProvider;
 
     private MessageProvider(Context context) {
         super(context);
         identityProvider = IdentityProvider.get(context);
+        handshakeProvider = HandshakeProvider.get(context);
     }
 
     @Override
@@ -88,10 +89,8 @@ public class MessageProvider extends DatabaseProvider<Message> {
     }
 
     public Message getLatestMessage(Chat chat) {
-        if (chat != null && chat.getMessages() != null) {
-            ArrayList<Message> messages = new ArrayList<>();
-            chat.getMessages().forEach(i -> getById(i, messages::add));
-            return messages.stream() //TODO it's very likely that this is now buggy!
+        if (chat != null) {
+            database.messageDao().getMessagesByChat(chat.getId()).stream()
                     .min((m1, m2) -> m1 != null ? m1.getDate().compareTo(m2.getDate()) : null)
                     .orElse(null);
         }
@@ -99,11 +98,9 @@ public class MessageProvider extends DatabaseProvider<Message> {
     }
 
     public void decryptMessage(@NonNull String message, @NonNull Chat chat, @NonNull Callback<String> callback) {
-
         if (!message.isEmpty()) {
-            Handshake handshake = chat.getHandshakes().get(chat.getSender());
-            if (handshake != null) {
-                try {
+            handshakeProvider.getLatestByReceiver(chat.getSender(), handshake -> {
+                if (handshake != null) {
                     identityProvider.getById(chat.getSender(), identity -> {
                         if (identity != null) {
                             SecretKey chatKey = MessagesService.getSecretKeyFromHandshake(handshake, identity);
@@ -128,20 +125,18 @@ public class MessageProvider extends DatabaseProvider<Message> {
                             Log.e(TAG, "Identity is null!");
                         }
                     });
-                } catch (DecryptionException e) {
-                    Log.e(TAG, "Unable to decrypt identity!", e);
+
+                } else {
+                    throw new IllegalStateException("No handshake for chatId: '" + chat.getId() + "'");
                 }
-            } else {
-                throw new IllegalStateException("No handshake for chatId: '" + chat.getId() + "'");
-            }
+            });
         }
     }
 
     public void encryptMessage(@NonNull String message, @NonNull Chat chat, @NonNull Callback<String> callback) {
         if (!message.isEmpty()) {
-            Handshake handshake = chat.getHandshakes().get(chat.getSender());
-            if (handshake != null) {
-                try {
+            handshakeProvider.getLatestByReceiver(chat.getSender(), handshake -> {
+                if (handshake != null) {
                     identityProvider.getById(chat.getSender(), identity -> {
                         if (identity != null) {
                             SecretKey chatKey = MessagesService.getSecretKeyFromHandshake(handshake, identity);
@@ -166,12 +161,20 @@ public class MessageProvider extends DatabaseProvider<Message> {
                             Log.e(TAG, "Identity is null!");
                         }
                     });
-                } catch (DecryptionException e) {
-                    Log.e(TAG, "Unable to decrypt identity!", e);
+                } else {
+                    throw new IllegalStateException("No handshake for chatId: '" + chat.getId() + "'");
                 }
-            } else {
-                throw new IllegalStateException("No handshake for chatId: '" + chat.getId() + "'");
-            }
+            });
         }
+    }
+
+    public void getByChat(@NonNull UUID chatId, @NonNull Callback<List<Message>> callback) {
+        AsyncTask.execute(() ->
+                callback.call(database.messageDao().getMessagesByChat(chatId).stream()
+                        .map(DatabaseEntityConverter::convert).collect(Collectors.toList())));
+    }
+
+    public void deleteByChat(@NonNull UUID chatId) {
+        AsyncTask.execute(() -> database.messageDao().deleteMessagesByChat(chatId));
     }
 }

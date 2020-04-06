@@ -1,4 +1,4 @@
-package tech.lerk.meshtalk.entities.db;
+package tech.lerk.meshtalk.db.entities;
 
 import androidx.annotation.NonNull;
 import androidx.room.ColumnInfo;
@@ -24,21 +24,18 @@ public class ContactDbo {
     @ColumnInfo(name = "public_key")
     private String publicKey;
 
-    public ContactDbo(UUID id, String name, String publicKey) {
+    public ContactDbo(@NonNull UUID id, String name, String publicKey) {
         this.id = id;
         this.name = name;
         this.publicKey = publicKey;
     }
 
-    @Ignore
-    public ContactDbo() {
-    }
-
+    @NonNull
     public UUID getId() {
         return id;
     }
 
-    public void setId(UUID id) {
+    public void setId(@NonNull UUID id) {
         this.id = id;
     }
 

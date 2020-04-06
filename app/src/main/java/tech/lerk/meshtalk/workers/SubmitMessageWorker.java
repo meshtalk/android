@@ -77,7 +77,7 @@ public class SubmitMessageWorker extends GatewayWorker {
                             .build());
                 }
             } catch (JsonSyntaxException | JsonIOException e) {
-                Log.e(TAG, "Unable to parse gateway metadata!", e);
+                Log.e(TAG, "Unable to parse gateway response!", e);
                 errorCode = ERROR_PARSING;
             } finally {
                 connection.disconnect();
