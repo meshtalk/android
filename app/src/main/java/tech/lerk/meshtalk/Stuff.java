@@ -67,11 +67,11 @@ public class Stuff {
     public static void determineSelfId(UUID sender, UUID recipient, IdentityProvider identityProvider, Callback<UUID> callback) {
         AsyncTask.execute(() ->
                 identityProvider.exists(sender, e -> {
-                    if (e) {
+                    if (e != null && e) {
                         callback.call(sender);
                     } else {
                         identityProvider.exists(recipient, e1 -> {
-                            if (e1) {
+                            if (e1 != null && e1) {
                                 callback.call(recipient);
                             } else {
                                 callback.call(null);

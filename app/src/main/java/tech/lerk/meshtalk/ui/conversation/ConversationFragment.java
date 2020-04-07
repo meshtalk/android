@@ -253,19 +253,20 @@ public class ConversationFragment extends Fragment {
     }
 
     private void updateUi(ArrayList<UIMessage> uiMessages) {
-        if (uiMessages.size() > 0) {
-            emptyList.setVisibility(View.INVISIBLE);
-        } else {
-            emptyList.setVisibility(View.VISIBLE);
-        }
         int preCount = listViewAdapter.getCount();
-        listViewAdapter.clear();
-        listViewAdapter.addAll(uiMessages);
-        listViewAdapter.sort(Sendable::compareTo);
-        int postCount = listViewAdapter.getCount();
-        checkForHandshake();
-        if (preCount != postCount && preferences.getBoolean(Preferences.CHAT_SCROLL_TO_BOTTOM_ON_NEW_MESSAGES.toString(), true)) {
-            scrollToBottom();
+        if (preCount != uiMessages.size()) {
+            if (uiMessages.size() > 0) {
+                emptyList.setVisibility(View.INVISIBLE);
+            } else {
+                emptyList.setVisibility(View.VISIBLE);
+            }
+            listViewAdapter.clear();
+            listViewAdapter.addAll(uiMessages);
+            listViewAdapter.sort(Sendable::compareTo);
+            checkForHandshake();
+            if (preferences.getBoolean(Preferences.CHAT_SCROLL_TO_BOTTOM_ON_NEW_MESSAGES.toString(), true)) {
+                scrollToBottom();
+            }
         }
     }
 

@@ -48,8 +48,6 @@ import tech.lerk.meshtalk.workers.GatewayMetaWorker;
 import static tech.lerk.meshtalk.Stuff.waitOrDonT;
 
 public class MainActivity extends AppCompatActivity {
-
-    private static final String TAG = MainActivity.class.getCanonicalName();
     private static MainActivity instance;
     private AppBarConfiguration mAppBarConfiguration;
     private SharedPreferences preferences;
@@ -258,7 +256,7 @@ public class MainActivity extends AppCompatActivity {
                 public void run() {
                     startService(new Intent(getApplicationContext(), MessagesService.class));
                 }
-            }, 0, 15000);
+            }, 0, 3000);
 
         } else {
             Toast.makeText(getApplicationContext(), R.string.info_fetching_messages_no_default_identity, Toast.LENGTH_LONG).show();
