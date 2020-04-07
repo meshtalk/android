@@ -1,5 +1,6 @@
 package tech.lerk.meshtalk.ui.conversation;
 
+import android.app.ActionBar;
 import android.app.AlertDialog;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
@@ -19,6 +20,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.widget.Toolbar;
 import androidx.emoji.bundled.BundledEmojiCompatConfig;
 import androidx.emoji.text.EmojiCompat;
 import androidx.fragment.app.Fragment;
@@ -196,6 +198,7 @@ public class ConversationFragment extends Fragment {
     }
 
     private void initUi(View root, @NonNull List<UIMessage> messages) {
+        ((Toolbar) requireActivity().findViewById(R.id.toolbar)).setTitle(currentChat.getTitle());
         if (messages.size() > 0) {
             emptyList.setVisibility(View.INVISIBLE);
         } else {
