@@ -5,6 +5,8 @@ import android.os.AsyncTask;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.lifecycle.LiveData;
 
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
@@ -28,6 +30,7 @@ import tech.lerk.meshtalk.Callback;
 import tech.lerk.meshtalk.MessagesService;
 import tech.lerk.meshtalk.Stuff;
 import tech.lerk.meshtalk.db.DatabaseEntityConverter;
+import tech.lerk.meshtalk.db.entities.MessageDbo;
 import tech.lerk.meshtalk.entities.Chat;
 import tech.lerk.meshtalk.entities.Message;
 import tech.lerk.meshtalk.providers.DatabaseProvider;
@@ -105,32 +108,40 @@ public class MessageProvider extends DatabaseProvider<Message> {
                         if (identity != null) {
                             SecretKey chatKey = MessagesService.getSecretKeyFromHandshake(handshake, identity);
                             byte[] chatIv = MessagesService.getIvFromHandshake(handshake, identity);
-                            try {
-                                if (chatKey != null) {
-                                    Cipher c = Cipher.getInstance(Stuff.AES_MODE);
-                                    c.init(Cipher.DECRYPT_MODE, chatKey, new GCMParameterSpec(128, chatIv));
-                                    byte[] decodedBytes = c.doFinal(Base64.getMimeDecoder().decode(message));
-                                    callback.call(new String(decodedBytes, StandardCharsets.UTF_8));
-                                } else {
-                                    Log.e(TAG, "ChatKey is null!");
-                                }
-                            } catch (NoSuchPaddingException | NoSuchAlgorithmException e) {
-                                Log.wtf(TAG, "Unable to load cipher!", e);
-                            } catch (InvalidKeyException | InvalidAlgorithmParameterException e) {
-                                Log.e(TAG, "Unable to init cipher!", e);
-                            } catch (BadPaddingException | IllegalBlockSizeException e) {
-                                Log.e(TAG, "Unable to decrypt message!", e);
+                            if (chatKey != null && chatIv != null) {
+                                callback.call(decryptMessage(message, chatKey, chatIv));
+                                return;
+                            } else {
+                                Log.e(TAG, "Chat key or iv is null!");
                             }
+                            callback.call(null);
                         } else {
                             Log.e(TAG, "Identity is null!");
+                            callback.call(null);
                         }
                     });
-
                 } else {
                     throw new IllegalStateException("No handshake for chatId: '" + chat.getId() + "'");
                 }
             });
         }
+    }
+
+    @Nullable
+    public String decryptMessage(@NonNull String message, @NonNull SecretKey chatKey, @NonNull byte[] chatIv) {
+        try {
+            Cipher c = Cipher.getInstance(Stuff.AES_MODE);
+            c.init(Cipher.DECRYPT_MODE, chatKey, new GCMParameterSpec(128, chatIv));
+            byte[] decodedBytes = c.doFinal(Base64.getMimeDecoder().decode(message));
+            return new String(decodedBytes, StandardCharsets.UTF_8);
+        } catch (NoSuchPaddingException | NoSuchAlgorithmException e) {
+            Log.wtf(TAG, "Unable to load cipher!", e);
+        } catch (InvalidKeyException | InvalidAlgorithmParameterException e) {
+            Log.e(TAG, "Unable to init cipher!", e);
+        } catch (BadPaddingException | IllegalBlockSizeException e) {
+            Log.e(TAG, "Unable to decrypt message!", e);
+        }
+        return null;
     }
 
     public void encryptMessage(@NonNull String message, @NonNull Chat chat, @NonNull Callback<String> callback) {
@@ -176,5 +187,9 @@ public class MessageProvider extends DatabaseProvider<Message> {
 
     public void deleteByChat(@NonNull UUID chatId) {
         AsyncTask.execute(() -> database.messageDao().deleteMessagesByChat(chatId));
+    }
+
+    public LiveData<List<MessageDbo>> getLiveMessagesByChat(@NonNull UUID chatId) {
+        return database.messageDao().getLiveMessagesByChat(chatId);
     }
 }

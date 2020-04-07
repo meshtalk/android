@@ -33,10 +33,12 @@ import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -47,12 +49,15 @@ import javax.crypto.SecretKey;
 
 import tech.lerk.meshtalk.Callback;
 import tech.lerk.meshtalk.MainActivity;
+import tech.lerk.meshtalk.MessagesService;
 import tech.lerk.meshtalk.Preferences;
 import tech.lerk.meshtalk.R;
 import tech.lerk.meshtalk.Stuff;
+import tech.lerk.meshtalk.db.DatabaseEntityConverter;
 import tech.lerk.meshtalk.entities.Chat;
 import tech.lerk.meshtalk.entities.Contact;
 import tech.lerk.meshtalk.entities.Message;
+import tech.lerk.meshtalk.entities.Sendable;
 import tech.lerk.meshtalk.providers.impl.ChatProvider;
 import tech.lerk.meshtalk.providers.impl.ContactProvider;
 import tech.lerk.meshtalk.providers.impl.HandshakeProvider;
@@ -72,7 +77,8 @@ public class ConversationFragment extends Fragment {
     private ChatProvider chatProvider;
     private HandshakeProvider handshakeProvider;
     private SharedPreferences preferences;
-    private ArrayAdapter<Message> listViewAdapter;
+    private ArrayAdapter<UIMessage> listViewAdapter;
+    private View emptyList;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -94,6 +100,7 @@ public class ConversationFragment extends Fragment {
         chatProvider = ChatProvider.get(requireContext());
         handshakeProvider = HandshakeProvider.get(requireContext());
         preferences = PreferenceManager.getDefaultSharedPreferences(requireContext().getApplicationContext());
+        emptyList = root.findViewById(R.id.message_list_empty);
 
         AlertDialog loadingDialog = Stuff.getLoadingDialog((MainActivity) requireActivity(), null);
         loadingDialog.show();
@@ -101,78 +108,100 @@ public class ConversationFragment extends Fragment {
                 chatProvider.getById(UUID.fromString(currentChatId), c -> {
                     if (c != null) {
                         messageProvider.getByChat(c.getId(), messages ->
-                                Objects.requireNonNull(getActivity()).runOnUiThread(() -> {
-                                    currentChat = c;
-                                    loadingDialog.dismiss();
-                                    initUi(root, messages);
+                                handshakeProvider.getLatestByReceiver(c.getSender(), handshake -> {
+                                    if (handshake != null) {
+                                        identityProvider.getById(c.getSender(), identity -> {
+                                            if (identity != null) {
+                                                SecretKey chatKey = MessagesService.getSecretKeyFromHandshake(handshake, identity);
+                                                byte[] chatIv = MessagesService.getIvFromHandshake(handshake, identity);
+                                                if (chatKey != null && chatIv != null && messages != null) {
+                                                    getUIMessages(messages, chatKey, chatIv, uiMessages -> {
+                                                        if (uiMessages != null) {
+                                                            requireActivity().runOnUiThread(() -> {
+                                                                currentChat = c;
+                                                                loadingDialog.dismiss();
+                                                                initUi(root, uiMessages);
+                                                                addMessageObserver(chatKey, chatIv);
+                                                            });
+                                                        } else {
+                                                            Log.wtf(TAG, "Converted messages list is null!");
+                                                        }
+                                                    });
+                                                } else {
+                                                    Log.e(TAG, "Chat key, iv or messages invalid!");
+                                                }
+                                            } else {
+                                                Log.e(TAG, "Identity is null!");
+                                            }
+                                        });
+                                    } else {
+                                        throw new IllegalStateException("No handshake for chatId: '" + c.getId() + "'");
+                                    }
                                 }));
                     } else {
                         Log.w(TAG, "Chat is null: '" + currentChatId + "'!");
                     }
                 })
         );
-
         return root;
     }
 
-    private void initUi(View root, List<Message> messages) {
+    private void addMessageObserver(SecretKey chatKey, byte[] chatIv) {
+        messageProvider.getLiveMessagesByChat(currentChat.getId()).observe(getViewLifecycleOwner(), messageDbos ->
+                getUIMessages(messageDbos.stream().map(DatabaseEntityConverter::convert).collect(Collectors.toList()),
+                        chatKey, chatIv, updatedUiMessages -> requireActivity().runOnUiThread(() -> updateUi(updatedUiMessages))));
+    }
+
+    private void getUIMessages(@NonNull List<Message> messages,
+                               @NonNull SecretKey chatKey,
+                               @NonNull byte[] chatIv,
+                               Callback<ArrayList<UIMessage>> callback) {
+        AsyncTask.execute(() -> {
+            ArrayList<UIMessage> uiMessages = new ArrayList<>();
+            messages.forEach(m ->
+                    Stuff.getContactOrIdentityForId(m.getSender(), contactProvider, identityProvider, sender -> {
+                        if (sender != null) {
+                            uiMessages.add(UIMessage.of(m, chatKey, chatIv, sender, messageProvider));
+                        }
+                    })
+            );
+            callback.call(uiMessages);
+        });
+    }
+
+    private void initUi(View root, @NonNull List<UIMessage> messages) {
         ListView listView = root.findViewById(R.id.message_list_view);
 
-        if (messages != null) {
-            if (messages.size() > 0) {
-                root.findViewById(R.id.message_list_empty).setVisibility(View.INVISIBLE);
-            } else {
-                root.findViewById(R.id.message_list_empty).setVisibility(View.VISIBLE);
-            }
-            listViewAdapter = new ArrayAdapter<Message>(requireContext(), R.layout.list_item_message, messages) {
-                @NonNull
-                @Override
-                public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
-                    View v = null;
-                    if (convertView != null) {
-                        v = convertView;
-                    }
-                    if (v == null) {
-                        v = View.inflate(requireContext(), R.layout.list_item_message, null);
-                    }
-                    TextView contactNameView = v.findViewById(R.id.list_item_message_contact_name_label);
-                    TextView messageView = v.findViewById(R.id.list_item_message_message);
-                    TextView timeView = v.findViewById(R.id.list_item_message_message_time);
-
-                    Message message = this.getItem(position);
-                    if (message != null) {
-                        AsyncTask.execute(() ->
-                                messageProvider.decryptMessage(message.getContent(), currentChat, decryptedMessage ->
-                                        contactProvider.getById(message.getSender(), contact ->
-                                                identityProvider.getById(message.getSender(), identity ->
-                                                        requireActivity().runOnUiThread(() -> {
-                                                            if (contact != null) {
-                                                                contactNameView.setText(contact.getName());
-                                                            } else {
-                                                                if (identity != null) {
-                                                                    contactNameView.setText(identity.getName());
-                                                                } else {
-                                                                    contactNameView.setText(R.string.error_loading_contact);
-                                                                    Log.e(TAG, "Unable to determine sender for message: '" + message.getId() + "'!");
-                                                                }
-                                                            }
-                                                            if (decryptedMessage != null) {
-                                                                messageView.setText(decryptedMessage);
-                                                            } else {
-                                                                messageView.setText(R.string.error_unable_to_decrypt_message);
-                                                            }
-                                                            timeView.setText(message.getDate().format(DateTimeFormatter.ISO_DATE_TIME));
-                                                        })
-                                                )
-
-                                        )));
-                    }
-                    return v;
-                }
-            };
+        if (messages.size() > 0) {
+            emptyList.setVisibility(View.INVISIBLE);
         } else {
-            Log.w(TAG, "Messages are null for: '" + currentChat.getId() + "'!");
+            emptyList.setVisibility(View.VISIBLE);
         }
+        listViewAdapter = new ArrayAdapter<UIMessage>(requireContext(), R.layout.list_item_message, messages) {
+            @NonNull
+            @Override
+            public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
+                View v = null;
+                if (convertView != null) {
+                    v = convertView;
+                }
+                if (v == null) {
+                    v = View.inflate(requireContext(), R.layout.list_item_message, null);
+                }
+                TextView contactNameView = v.findViewById(R.id.list_item_message_contact_name_label);
+                TextView messageView = v.findViewById(R.id.list_item_message_message);
+                TextView timeView = v.findViewById(R.id.list_item_message_message_time);
+
+                UIMessage message = this.getItem(position);
+                if (message != null) {
+                    contactNameView.setText(message.getSenderName());
+                    messageView.setText(message.getDecryptedText());
+                    timeView.setText(message.getDate().format(DateTimeFormatter.ISO_DATE_TIME));
+                }
+                return v;
+            }
+        };
+        listViewAdapter.sort(Sendable::compareTo);
         listView.setAdapter(listViewAdapter);
 
         EditText messageET = root.findViewById(R.id.message_edit_text);
@@ -188,6 +217,19 @@ public class ConversationFragment extends Fragment {
             }
             return false;
         });
+
+        checkForHandshake();
+    }
+
+    private void updateUi(ArrayList<UIMessage> uiMessages) {
+        listViewAdapter.clear();
+        listViewAdapter.addAll(uiMessages);
+        listViewAdapter.sort(Sendable::compareTo);
+        if (uiMessages.size() > 0) {
+            emptyList.setVisibility(View.INVISIBLE);
+        } else {
+            emptyList.setVisibility(View.VISIBLE);
+        }
         checkForHandshake();
     }
 

@@ -108,12 +108,18 @@ public class FetchMessagesWorker extends GatewayWorker {
     private void doMessageRequest(String url, Callback<ArrayList<Message>> callback) throws IOException {
         URL gatewayMetaUrl = new URL(url);
         HttpURLConnection connection = (HttpURLConnection) gatewayMetaUrl.openConnection();
-        try (InputStream io = connection.getInputStream()) {
-            callback.call(gson.fromJson(new JsonReader(new InputStreamReader(io)), getMessageListType()));
-        } catch (JsonSyntaxException | JsonIOException e) {
-            Log.w(TAG, "Unable to parse response of: '" + url + "'!", e);
-        } finally {
-            connection.disconnect();
+        if (connection.getResponseCode() == 200) {
+            try (InputStream io = connection.getInputStream()) {
+                callback.call(gson.fromJson(new JsonReader(new InputStreamReader(io)), getMessageListType()));
+                return;
+            } catch (JsonSyntaxException | JsonIOException e) {
+                Log.w(TAG, "Unable to parse response of: '" + url + "'!", e);
+            } finally {
+                connection.disconnect();
+            }
+        } else if (connection.getResponseCode() == 404) {
+            callback.call(new ArrayList<>());
+            return;
         }
         callback.call(null);
     }

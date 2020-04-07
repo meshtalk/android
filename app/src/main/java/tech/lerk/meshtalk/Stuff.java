@@ -1,11 +1,11 @@
 package tech.lerk.meshtalk;
 
 import android.app.AlertDialog;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.os.AsyncTask;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 
@@ -19,7 +19,6 @@ import java.util.Base64;
 import java.util.UUID;
 
 import tech.lerk.meshtalk.entities.Contact;
-import tech.lerk.meshtalk.exceptions.DecryptionException;
 import tech.lerk.meshtalk.providers.impl.ContactProvider;
 import tech.lerk.meshtalk.providers.impl.IdentityProvider;
 
@@ -84,11 +83,11 @@ public class Stuff {
 
     public static void determineOtherId(UUID sender, UUID recipient, IdentityProvider identityProvider, Callback<UUID> callback) {
         identityProvider.exists(sender, e -> {
-            if (e) {
+            if (e != null && e) {
                 callback.call(recipient);
             } else {
                 identityProvider.exists(recipient, e1 -> {
-                    if (e1) {
+                    if (e1 != null && e1) {
                         callback.call(sender);
                     } else {
                         callback.call(null);
@@ -115,5 +114,23 @@ public class Stuff {
             builder.setNegativeButton(R.string.action_back, negativeButtonListener);
         }
         return builder.create();
+    }
+
+    public static void getContactOrIdentityForId(@NonNull UUID id, @NonNull ContactProvider contactProvider,
+                                                 @NonNull IdentityProvider identityProvider,
+                                                 @NonNull Callback<Contact> callback) {
+        contactProvider.getById(id, contactForId -> {
+            if (contactForId != null) {
+                callback.call(contactForId);
+            } else {
+                identityProvider.getById(id, identity -> {
+                    if (identity != null) {
+                        callback.call(identity);
+                    } else {
+                        callback.call(null);
+                    }
+                });
+            }
+        });
     }
 }
