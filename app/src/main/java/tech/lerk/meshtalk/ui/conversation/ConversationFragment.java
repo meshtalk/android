@@ -9,6 +9,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
+import android.widget.AbsListView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
@@ -25,6 +26,8 @@ import androidx.preference.PreferenceManager;
 import androidx.work.Data;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
+
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
@@ -79,6 +82,8 @@ public class ConversationFragment extends Fragment {
     private SharedPreferences preferences;
     private ArrayAdapter<UIMessage> listViewAdapter;
     private View emptyList;
+    private ListView listView;
+    private FloatingActionButton scrollButton;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -100,7 +105,28 @@ public class ConversationFragment extends Fragment {
         chatProvider = ChatProvider.get(requireContext());
         handshakeProvider = HandshakeProvider.get(requireContext());
         preferences = PreferenceManager.getDefaultSharedPreferences(requireContext().getApplicationContext());
+
         emptyList = root.findViewById(R.id.message_list_empty);
+        listView = root.findViewById(R.id.message_list_view);
+        scrollButton = root.findViewById(R.id.message_list_scroll_button);
+
+        listView.setOnScrollListener(new AbsListView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(AbsListView view, int scrollState) {
+            }
+
+            @Override
+            public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+                if (view.getId() == R.id.message_list_view) {
+                    int lastindex = view.getLastVisiblePosition() + 1;
+                    if (lastindex == totalItemCount) {
+                        scrollButton.setVisibility(View.INVISIBLE);
+                    } else if (firstVisibleItem + visibleItemCount == lastindex) {
+                        scrollButton.setVisibility(View.VISIBLE);
+                    }
+                }
+            }
+        });
 
         AlertDialog loadingDialog = Stuff.getLoadingDialog((MainActivity) requireActivity(), null);
         loadingDialog.show();
@@ -170,8 +196,6 @@ public class ConversationFragment extends Fragment {
     }
 
     private void initUi(View root, @NonNull List<UIMessage> messages) {
-        ListView listView = root.findViewById(R.id.message_list_view);
-
         if (messages.size() > 0) {
             emptyList.setVisibility(View.INVISIBLE);
         } else {
@@ -203,6 +227,7 @@ public class ConversationFragment extends Fragment {
         };
         listViewAdapter.sort(Sendable::compareTo);
         listView.setAdapter(listViewAdapter);
+        scrollButton.setOnClickListener(v -> listView.smoothScrollToPositionFromTop(listViewAdapter.getCount(), 0));
 
         EditText messageET = root.findViewById(R.id.message_edit_text);
         messageET.setImeOptions(EditorInfo.IME_ACTION_SEND);

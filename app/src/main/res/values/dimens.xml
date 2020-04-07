@@ -8,4 +8,5 @@
     <dimen name="dialog_padding">16dp</dimen>
     <dimen name="identicon_size">128dp</dimen>
     <dimen name="list_identicon_size">64dp</dimen>
+    <dimen name="message_list_padding">48dp</dimen>
 </resources>

@@ -1,32 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".ui.conversation.ConversationFragment">
 
-    <ListView android:id="@+id/message_list_view"
+    <ListView
+        android:id="@+id/message_list_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true" />
+        android:layout_centerHorizontal="true"
+        android:paddingBottom="@dimen/message_list_padding" />
 
     <TextView
         android:id="@+id/message_list_empty"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/message_list_empty"
-        android:visibility="invisible"
+        android:layout_centerHorizontal="true"
         android:layout_centerVertical="true"
-        android:layout_centerHorizontal="true" />
+        android:text="@string/message_list_empty"
+        android:visibility="invisible" />
 
-    <RelativeLayout
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/message_list_scroll_button"
+        android:layout_alignParentEnd="true"
+        android:layout_above="@id/message_edit_text_wrapper"
+        android:tint="#fff"
+        android:visibility="invisible"
+        android:src="@drawable/ic_expand_more_black_24dp"/>
+
+    <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="@dimen/message_list_padding"
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
+        android:elevation="18dp"
         android:paddingStart="8dp"
-        android:paddingEnd="8dp">
+        android:paddingEnd="8dp"
+        app:cardCornerRadius="5dp"
+        android:id="@+id/message_edit_text_wrapper">
 
         <androidx.emoji.widget.EmojiEditText
             android:id="@+id/message_edit_text"
@@ -37,6 +53,6 @@
             android:inputType="text|textShortMessage"
             android:maxLines="10" />
 
-    </RelativeLayout>
+    </androidx.cardview.widget.CardView>
 
 </RelativeLayout>
