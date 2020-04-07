@@ -40,6 +40,10 @@ android {
         androidTest.assets.srcDirs += files("$projectDir/schemas".toString())
     }
 
+    lintOptions {
+        abortOnError false
+    }
+
 }
 
 dependencies {

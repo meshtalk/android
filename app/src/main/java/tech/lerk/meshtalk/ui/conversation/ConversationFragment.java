@@ -236,10 +236,12 @@ public class ConversationFragment extends Fragment {
         messageET.setInputType(EditorInfo.TYPE_TEXT_FLAG_MULTI_LINE);
         messageET.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_SEND) {
+                messageET.setEnabled(false);
                 sendMessage(messageET.getText().toString(), currentChat, success -> {
                     if (success != null && success) {
                         messageET.setText("");
                     }
+                    messageET.setEnabled(true);
                 });
             }
             return false;
