@@ -26,10 +26,11 @@ import java.util.TreeSet;
 
 import im.delight.android.identicons.Identicon;
 import tech.lerk.meshtalk.MainActivity;
+import tech.lerk.meshtalk.Preferences;
 import tech.lerk.meshtalk.R;
+import tech.lerk.meshtalk.Stuff;
 import tech.lerk.meshtalk.entities.Chat;
 import tech.lerk.meshtalk.entities.Message;
-import tech.lerk.meshtalk.Preferences;
 import tech.lerk.meshtalk.providers.impl.ChatProvider;
 import tech.lerk.meshtalk.providers.impl.MessageProvider;
 import tech.lerk.meshtalk.ui.UpdatableFragment;
@@ -113,7 +114,7 @@ public class ChatsFragment extends UpdatableFragment {
                                 messageProvider.decryptMessage(latestMessage.getContent(), chat, latestMessageText ->
                                         requireActivity().runOnUiThread(() -> {
                                             if (latestMessageText != null) {
-                                                latestMessageView.setText(latestMessageText);
+                                                latestMessageView.setText(Stuff.ellipsize(64, latestMessageText));
                                             } else {
                                                 latestMessageView.setText(R.string.error_unable_to_decrypt_message);
                                             }

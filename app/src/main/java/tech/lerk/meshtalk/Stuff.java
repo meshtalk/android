@@ -133,4 +133,8 @@ public class Stuff {
             }
         });
     }
+
+    public static String ellipsize(int maxLength, @NonNull String text) {
+        return (text.length() > maxLength) ? text.substring(0, maxLength - 1) + '\u2026' : text;
+    }
 }

@@ -93,9 +93,11 @@ public class MessageProvider extends DatabaseProvider<Message> {
 
     public Message getLatestMessage(Chat chat) {
         if (chat != null) {
-            database.messageDao().getMessagesByChat(chat.getId()).stream()
-                    .min((m1, m2) -> m1 != null ? m1.getDate().compareTo(m2.getDate()) : null)
+            List<MessageDbo> messagesByChat = database.messageDao().getMessagesByChat(chat.getId());
+            MessageDbo minMessage = messagesByChat.stream()
+                    .max((o1, o2) -> o1.getDate().compareTo(o2.getDate()))
                     .orElse(null);
+            return DatabaseEntityConverter.convert(minMessage);
         }
         return null;
     }
