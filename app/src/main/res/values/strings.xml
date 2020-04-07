@@ -86,7 +86,7 @@
     <string name="dialog_no_identities_message">There are no identities. You need at least one to send messges. Do you want to create a new identity now?</string>
     <string name="chat_list_empty">No Chats…</string>
     <string name="list_item_chat_title_label">Chat with Alice</string>
-    <string name="list_item_chat_latest_message_label" translatable="false"/>
+    <string name="list_item_chat_latest_message_label" translatable="false">@string/loading</string>
     <string name="no_messages">No Messages…</string>
     <string name="error_no_chat_selected">No Chat Selected!</string>
     <string name="action_copy_contact_info">Copy Info</string>
@@ -166,7 +166,9 @@
     <string name="list_item_mesage_contact_name_label" translatable="false" />
     <string name="list_item_message_message_label" translatable="false" />
     <string name="error_loading_contact">Error loading contact!</string>
-    <string name="pref_summary_toast_fetch_errors">When activated, a Toast will be shown when any fetch operation errors.</string>
+    <string name="pref_summary_toast_fetch_errors">If activated, a Toast will be shown when any fetch operation errors.</string>
     <string name="pref_title_toast_fetch_errors">Toast Fetch Errors</string>
     <string name="list_item_mesage_message_time" translatable="false">YYYY-MM-DD HH:mm:ss</string>
+    <string name="pref_title_chat_scroll_to_bottom_on_new_messages">Scroll To Bottom On New Messages</string>
+    <string name="pref_summary_chat_scroll_to_bottom_on_new_messages">If selected, the application will scroll to the bottom automatically when a new message arrives in an open chat.</string>
 </resources>

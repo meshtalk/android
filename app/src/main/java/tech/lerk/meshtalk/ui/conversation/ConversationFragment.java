@@ -1,6 +1,5 @@
 package tech.lerk.meshtalk.ui.conversation;
 
-import android.app.ActionBar;
 import android.app.AlertDialog;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
@@ -223,14 +222,14 @@ public class ConversationFragment extends Fragment {
                 if (message != null) {
                     contactNameView.setText(message.getSenderName());
                     messageView.setText(message.getDecryptedText());
-                    timeView.setText(message.getDate().format(DateTimeFormatter.ISO_DATE_TIME));
+                    timeView.setText(message.getDate().format(DateTimeFormatter.ofPattern("d MMM uuuu hh:mm")));
                 }
                 return v;
             }
         };
         listViewAdapter.sort(Sendable::compareTo);
         listView.setAdapter(listViewAdapter);
-        scrollButton.setOnClickListener(v -> listView.smoothScrollToPositionFromTop(listViewAdapter.getCount(), 0));
+        scrollButton.setOnClickListener(v -> scrollToBottom());
 
         EditText messageET = root.findViewById(R.id.message_edit_text);
         messageET.setImeOptions(EditorInfo.IME_ACTION_SEND);
@@ -249,6 +248,10 @@ public class ConversationFragment extends Fragment {
         checkForHandshake();
     }
 
+    private void scrollToBottom() {
+        listView.smoothScrollToPositionFromTop(listViewAdapter.getCount() + 1, 0);
+    }
+
     private void updateUi(ArrayList<UIMessage> uiMessages) {
         listViewAdapter.clear();
         listViewAdapter.addAll(uiMessages);
@@ -259,6 +262,9 @@ public class ConversationFragment extends Fragment {
             emptyList.setVisibility(View.VISIBLE);
         }
         checkForHandshake();
+        if (preferences.getBoolean(Preferences.CHAT_SCROLL_TO_BOTTOM_ON_NEW_MESSAGES.toString(), true)) {
+            scrollToBottom();
+        }
     }
 
     private void sendMessage(String message, Chat chat, Callback<Boolean> callback) {

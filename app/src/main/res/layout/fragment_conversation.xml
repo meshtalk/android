@@ -12,7 +12,8 @@
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
-        android:paddingBottom="@dimen/message_list_padding" />
+        android:stackFromBottom="true"
+        android:layout_marginBottom="@dimen/message_list_padding" />
 
     <TextView
         android:id="@+id/message_list_empty"
@@ -24,33 +25,38 @@
         android:visibility="invisible" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/message_list_scroll_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/message_list_scroll_button"
-        android:layout_alignParentEnd="true"
         android:layout_above="@id/message_edit_text_wrapper"
+        android:layout_alignParentEnd="true"
+        android:layout_margin="8dp"
+        android:src="@drawable/ic_expand_more_black_24dp"
         android:tint="#fff"
-        android:visibility="invisible"
-        android:src="@drawable/ic_expand_more_black_24dp"/>
+        android:visibility="invisible" />
 
     <androidx.cardview.widget.CardView
+        android:id="@+id/message_edit_text_wrapper"
         android:layout_width="match_parent"
         android:layout_height="@dimen/message_list_padding"
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
-        android:elevation="18dp"
+        android:elevation="8dp"
+        app:cardElevation="10dp"
+        app:cardPreventCornerOverlap="false"
         android:paddingStart="8dp"
         android:paddingEnd="8dp"
-        app:cardCornerRadius="5dp"
-        android:id="@+id/message_edit_text_wrapper">
+        app:cardCornerRadius="5dp">
 
         <androidx.emoji.widget.EmojiEditText
             android:id="@+id/message_edit_text"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
             android:autofillHints="text"
             android:hint="@string/hint_message"
-            android:inputType="text|textShortMessage"
+            android:inputType="text|textMultiLine|textShortMessage|textAutoCorrect|textAutoComplete|textImeMultiLine"
             android:maxLines="10" />
 
     </androidx.cardview.widget.CardView>

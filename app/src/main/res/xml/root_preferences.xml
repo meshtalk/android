@@ -12,6 +12,11 @@
             app:defaultValue="true"
             app:key="ask_default_identity"
             app:title="@string/pref_title_ask_default_identity" />
+        <SwitchPreference
+            android:summary="@string/pref_summary_chat_scroll_to_bottom_on_new_messages"
+            app:defaultValue="true"
+            app:key="chat_scroll_to_bottom_on_new_messages"
+            app:title="@string/pref_title_chat_scroll_to_bottom_on_new_messages" />
     </PreferenceCategory>
 
     <PreferenceCategory app:title="@string/pref_category_toasts">
