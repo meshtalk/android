@@ -114,7 +114,7 @@ public class ChatsFragment extends UpdatableFragment {
                                 messageProvider.decryptMessage(latestMessage.getContent(), chat, latestMessageText ->
                                         requireActivity().runOnUiThread(() -> {
                                             if (latestMessageText != null) {
-                                                latestMessageView.setText(Stuff.ellipsize(64, latestMessageText));
+                                                latestMessageView.setText(Stuff.ellipsize(40, latestMessageText));
                                             } else {
                                                 latestMessageView.setText(R.string.error_unable_to_decrypt_message);
                                             }
