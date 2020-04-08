@@ -256,7 +256,7 @@ public class MainActivity extends AppCompatActivity {
                 public void run() {
                     startService(new Intent(getApplicationContext(), MessagesService.class));
                 }
-            }, 0, 3000);
+            }, 0, 7000);
 
         } else {
             Toast.makeText(getApplicationContext(), R.string.info_fetching_messages_no_default_identity, Toast.LENGTH_LONG).show();
