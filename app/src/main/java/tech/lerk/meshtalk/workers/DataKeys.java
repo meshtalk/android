@@ -18,6 +18,7 @@ public enum DataKeys {
     HANDSHAKE_ID("id"),
     HANDSHAKE_SENDER("sender"),
     HANDSHAKE_RECEIVER("receiver"),
+    HANDSHAKE_REPLY("reply"),
     HANDSHAKE_CHAT("chat"),
     HANDSHAKE_DATE("date"),
     HANDSHAKE_KEY("key"),

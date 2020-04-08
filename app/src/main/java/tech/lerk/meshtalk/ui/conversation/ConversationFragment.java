@@ -4,6 +4,7 @@ import android.app.AlertDialog;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -23,6 +24,7 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.emoji.bundled.BundledEmojiCompatConfig;
 import androidx.emoji.text.EmojiCompat;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentActivity;
 import androidx.preference.PreferenceManager;
 import androidx.work.Data;
 import androidx.work.OneTimeWorkRequest;
@@ -134,6 +136,7 @@ public class ConversationFragment extends Fragment {
         AsyncTask.execute(() ->
                 chatProvider.getById(UUID.fromString(currentChatId), c -> {
                     if (c != null) {
+                        currentChat = c;
                         messageProvider.getByChat(c.getId(), messages ->
                                 handshakeProvider.getLatestByReceiver(c.getSender(), handshake -> {
                                     if (handshake != null) {
@@ -145,7 +148,6 @@ public class ConversationFragment extends Fragment {
                                                     getUIMessages(messages, chatKey, chatIv, uiMessages -> {
                                                         if (uiMessages != null) {
                                                             requireActivity().runOnUiThread(() -> {
-                                                                currentChat = c;
                                                                 loadingDialog.dismiss();
                                                                 initUi(root, uiMessages);
                                                                 addMessageObserver(chatKey, chatIv);
@@ -162,7 +164,9 @@ public class ConversationFragment extends Fragment {
                                             }
                                         });
                                     } else {
-                                        throw new IllegalStateException("No handshake for chatId: '" + c.getId() + "'");
+                                        loadingDialog.dismiss();
+                                        // start handshake check loop
+                                        requireActivity().runOnUiThread(this::checkForHandshake);
                                     }
                                 }));
                     } else {
@@ -254,21 +258,25 @@ public class ConversationFragment extends Fragment {
         listView.smoothScrollToPositionFromTop(listViewAdapter.getCount() + 1, 0);
     }
 
-    private void updateUi(ArrayList<UIMessage> uiMessages) {
-        int preCount = listViewAdapter.getCount();
-        if (preCount != uiMessages.size()) {
-            if (uiMessages.size() > 0) {
-                emptyList.setVisibility(View.INVISIBLE);
-            } else {
-                emptyList.setVisibility(View.VISIBLE);
+    private void updateUi(@Nullable ArrayList<UIMessage> uiMessages) {
+        if (uiMessages != null) {
+            int preCount = listViewAdapter.getCount();
+            if (preCount != uiMessages.size()) {
+                if (uiMessages.size() > 0) {
+                    emptyList.setVisibility(View.INVISIBLE);
+                } else {
+                    emptyList.setVisibility(View.VISIBLE);
+                }
+                listViewAdapter.clear();
+                listViewAdapter.addAll(uiMessages);
+                listViewAdapter.sort(Sendable::compareTo);
+                checkForHandshake();
+                if (preferences.getBoolean(Preferences.CHAT_SCROLL_TO_BOTTOM_ON_NEW_MESSAGES.toString(), true)) {
+                    scrollToBottom();
+                }
             }
-            listViewAdapter.clear();
-            listViewAdapter.addAll(uiMessages);
-            listViewAdapter.sort(Sendable::compareTo);
-            checkForHandshake();
-            if (preferences.getBoolean(Preferences.CHAT_SCROLL_TO_BOTTOM_ON_NEW_MESSAGES.toString(), true)) {
-                scrollToBottom();
-            }
+        } else {
+            Log.e(TAG, "Messages are null!");
         }
     }
 
@@ -328,48 +336,77 @@ public class ConversationFragment extends Fragment {
     }
 
     private void checkForHandshake() {
+        //FIXME this whole method is complete thrash. It should be rewritten to use the Handshake#reply property.
         Stuff.determineSelfId(currentChat.getSender(), currentChat.getRecipient(), identityProvider, selfId ->
                 Stuff.determineOtherId(currentChat.getSender(), currentChat.getRecipient(), identityProvider, otherId -> {
                     if (selfId != null && otherId != null) {
-                        handshakeProvider.getLatestByReceiver(otherId, otherHandshake ->
-                                handshakeProvider.getLatestByReceiver(selfId, selfHandshake ->
-                                        contactProvider.getById(otherId, contact -> {
-                                            if (selfHandshake == null) {
-                                                requireActivity().runOnUiThread(() -> {
-                                                    AlertDialog alertDialog = Stuff.getLoadingDialog((MainActivity) requireActivity(), (d, w) -> {
-                                                        d.dismiss();
-                                                        requireActivity().onBackPressed();
-                                                        ((MainActivity) requireActivity()).getNavController().navigate(R.id.nav_item_chats);
-                                                    }, R.string.dialog_waiting_for_handshake_title);
-                                                    alertDialog.show();
-                                                    ProgressBar progressBar = Objects.requireNonNull(alertDialog.findViewById(R.id.loading_spinner));
-                                                    TextView loadingTextView = Objects.requireNonNull(alertDialog.findViewById(R.id.loading_text));
-                                                    if (otherHandshake == null) {
-                                                        progressBar.setProgress(1, true);
-                                                        loadingTextView.setText(R.string.dialog_waiting_for_handshake_message_sending_handshake);
-                                                        if (contact != null) {
-                                                            try {
-                                                                submitHandshake(contact, selfId, KeyGenerator.getInstance("AES").generateKey());
-                                                            } catch (NoSuchAlgorithmException e) {
-                                                                Log.wtf(TAG, "Unable to get KeyGenerator!", e);
+                        requireActivity().runOnUiThread(() -> {
+                            AlertDialog alertDialog = Stuff.getLoadingDialog((MainActivity) requireActivity(), (d, w) -> {
+                                d.dismiss();
+                                requireActivity().onBackPressed();
+                                ((MainActivity) requireActivity()).getNavController().navigate(R.id.nav_item_chats);
+                            }, R.string.dialog_waiting_for_handshake_title);
+                            alertDialog.show();
+                            handshakeProvider.getLatestByReceiver(otherId, otherHandshake ->
+                                    handshakeProvider.getLatestByReceiver(selfId, selfHandshake ->
+                                            contactProvider.getById(otherId, contact -> {
+                                                if (selfHandshake == null) {
+                                                    requireActivity().runOnUiThread(() -> {
+                                                        ProgressBar progressBar = Objects.requireNonNull(alertDialog.findViewById(R.id.loading_spinner));
+                                                        TextView loadingTextView = Objects.requireNonNull(alertDialog.findViewById(R.id.loading_text));
+                                                        if (otherHandshake == null) {
+                                                            progressBar.setProgress(1, true);
+                                                            loadingTextView.setText(R.string.dialog_waiting_for_handshake_message_sending_handshake);
+                                                            if (contact != null) {
+                                                                try {
+                                                                    submitHandshake(contact, selfId, KeyGenerator.getInstance("AES").generateKey());
+                                                                } catch (NoSuchAlgorithmException e) {
+                                                                    Log.wtf(TAG, "Unable to get KeyGenerator!", e);
+                                                                }
+                                                            } else {
+                                                                Log.w(TAG, "Contact '" + otherId + "' is null!");
                                                             }
-                                                        } else {
-                                                            Log.w(TAG, "Contact '" + otherId + "' is null!");
                                                         }
-                                                    }
-                                                    progressBar.setProgress(80, true);
-                                                    loadingTextView.setText(R.string.dialog_waiting_for_handshake_message_waiting_for_handshake);
-                                                });
-                                            }
-                                        })
-                                )
-                        );
+                                                        progressBar.setProgress(80, true);
+                                                        loadingTextView.setText(R.string.dialog_waiting_for_handshake_message_waiting_for_handshake);
+                                                        startHandshakeWaitingLoop(selfId, otherId, alertDialog);
+                                                    });
+                                                }
+                                            })
+                                    )
+                            );
+                        });
                     } else {
                         Toast.makeText(requireContext(), R.string.error_unable_to_determine_participant, Toast.LENGTH_LONG).show();
                         requireActivity().onBackPressed();
                         ((MainActivity) requireActivity()).getNavController().navigate(R.id.nav_item_chats);
                     }
                 }));
+    }
+
+    private void startHandshakeWaitingLoop(UUID selfId, UUID otherId, AlertDialog alertDialog) {
+        final Runnable[] handshakeWaitingLoop = {null};
+        handshakeWaitingLoop[0] = () ->
+                handshakeProvider.getLatestByReceiver(otherId, otherHandshake ->
+                        handshakeProvider.getLatestByReceiver(selfId, selfHandshake -> {
+                                    FragmentActivity activity = getActivity();
+                                    if (activity != null) {
+                                        activity.runOnUiThread(() -> {
+                                            if (selfHandshake != null && otherHandshake != null) {
+                                                alertDialog.dismiss();
+                                            } else {
+                                                if (handshakeWaitingLoop[0] != null) {
+                                                    new Handler().postDelayed(handshakeWaitingLoop[0], 3000);
+                                                }
+                                            }
+                                        });
+                                    } else {
+                                        Log.w(TAG, "Unable to get activity!");
+                                    }
+                                }
+                        )
+                );
+        handshakeWaitingLoop[0].run();
     }
 
     private void submitHandshake(@NonNull Contact receiver, @NonNull UUID senderId, @NonNull SecretKey secretKey) {
@@ -384,7 +421,7 @@ public class ConversationFragment extends Fragment {
                         .putString(DataKeys.HANDSHAKE_RECEIVER.toString(), receiver.getId().toString())
                         .putLong(DataKeys.HANDSHAKE_DATE.toString(), LocalDateTime.now().toEpochSecond(ZoneOffset.UTC))
                         .putString(DataKeys.HANDSHAKE_KEY.toString(), Base64.getMimeEncoder().encodeToString(cipher.doFinal(secretKey.getEncoded())))
-                        .putString(DataKeys.HANDSHAKE_IV.toString(), generateChatIv())
+                        .putString(DataKeys.HANDSHAKE_IV.toString(), Base64.getMimeEncoder().encodeToString(generateChatIv().getBytes(StandardCharsets.UTF_8)))
                         .build();
 
                 OneTimeWorkRequest sendHandshakeWorkRequest = new OneTimeWorkRequest.Builder(SubmitHandshakeWorker.class)

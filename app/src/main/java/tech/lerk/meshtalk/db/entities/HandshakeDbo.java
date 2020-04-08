@@ -3,7 +3,6 @@ package tech.lerk.meshtalk.db.entities;
 import androidx.annotation.NonNull;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
-import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
 
 import java.time.LocalDateTime;
@@ -22,6 +21,9 @@ public class HandshakeDbo {
     @ColumnInfo(name = "receiver")
     private UUID receiver;
 
+    @ColumnInfo(name = "reply")
+    private UUID reply;
+
     @ColumnInfo(name = "date")
     private LocalDateTime date;
 
@@ -34,10 +36,11 @@ public class HandshakeDbo {
     @ColumnInfo(name = "iv")
     private String iv;
 
-    public HandshakeDbo(@NonNull UUID id, UUID sender, UUID receiver, LocalDateTime date, UUID chat, String key, String iv) {
+    public HandshakeDbo(@NonNull UUID id, UUID sender, UUID receiver, UUID reply, LocalDateTime date, UUID chat, String key, String iv) {
         this.id = id;
         this.sender = sender;
         this.receiver = receiver;
+        this.reply = reply;
         this.date = date;
         this.chat = chat;
         this.key = key;
@@ -67,6 +70,14 @@ public class HandshakeDbo {
 
     public void setReceiver(UUID receiver) {
         this.receiver = receiver;
+    }
+
+    public UUID getReply() {
+        return reply;
+    }
+
+    public void setReply(UUID reply) {
+        this.reply = reply;
     }
 
     public LocalDateTime getDate() {

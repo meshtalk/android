@@ -164,6 +164,7 @@ public final class DatabaseEntityConverter {
             h1.setChat(h.getChat());
             h1.setDate(h.getDate());
             h1.setReceiver(h.getReceiver());
+            h1.setReply(h.getReply());
             h1.setSender(h.getSender());
             h1.setKey(h.getKey());
             h1.setIv(h.getIv());
@@ -175,7 +176,7 @@ public final class DatabaseEntityConverter {
     @Nullable
     public static HandshakeDbo convert(Handshake h) {
         if (h != null) {
-            return new HandshakeDbo(h.getId(), h.getSender(), h.getReceiver(), h.getDate(), h.getChat(), h.getKey(), h.getIv());
+            return new HandshakeDbo(h.getId(), h.getSender(), h.getReceiver(), h.getReply(), h.getDate(), h.getChat(), h.getKey(), h.getIv());
         }
         return null;
     }

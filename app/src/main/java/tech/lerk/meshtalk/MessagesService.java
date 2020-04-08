@@ -19,6 +19,7 @@ import androidx.work.WorkManager;
 
 import com.google.gson.Gson;
 
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
@@ -132,10 +133,11 @@ public class MessagesService extends LifecycleService {
                                     cipher.init(Cipher.ENCRYPT_MODE, contactById.getPublicKey());
 
                                     Data handshakeData = new Data.Builder()
-                                            .putString(DataKeys.HANDSHAKE_ID.toString(), UUID.randomUUID().toString())
+                                            .putString(DataKeys.HANDSHAKE_ID.toString(), handshake.getReply().toString())
                                             .putString(DataKeys.HANDSHAKE_CHAT.toString(), chat.getId().toString())
                                             .putString(DataKeys.HANDSHAKE_SENDER.toString(), chat.getSender().toString())
                                             .putString(DataKeys.HANDSHAKE_RECEIVER.toString(), chat.getRecipient().toString())
+                                            .putString(DataKeys.HANDSHAKE_REPLY.toString(), handshake.getId().toString())
                                             .putLong(DataKeys.HANDSHAKE_DATE.toString(), LocalDateTime.now().toEpochSecond(ZoneOffset.UTC))
                                             .putString(DataKeys.HANDSHAKE_KEY.toString(), Base64.getMimeEncoder().encodeToString(cipher.doFinal(secretKey.getEncoded())))
                                             .putString(DataKeys.HANDSHAKE_IV.toString(), Base64.getMimeEncoder().encodeToString(cipher.doFinal(getIvFromHandshake(handshake, handshakeIdentity))))
@@ -270,7 +272,7 @@ public class MessagesService extends LifecycleService {
         try {
             Cipher cipher = Cipher.getInstance("RSA");
             cipher.init(Cipher.DECRYPT_MODE, identity.getPrivateKey());
-            return cipher.doFinal(Base64.getMimeDecoder().decode(handshake.getIv()));
+            return cipher.doFinal(Base64.getMimeDecoder().decode(handshake.getIv().getBytes(StandardCharsets.UTF_8)));
         } catch (NoSuchAlgorithmException | InvalidKeyException |
                 NoSuchPaddingException | BadPaddingException | IllegalBlockSizeException e) {
             Log.e(TAG, "Unable to decrypt handshake '" + handshake.getId() + "' with identity '" + identity.getId() + "'");
