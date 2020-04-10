@@ -1,5 +1,6 @@
 package tech.lerk.meshtalk.db.dao;
 
+import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
 import androidx.room.Delete;
 import androidx.room.Insert;
@@ -11,6 +12,7 @@ import java.util.List;
 import java.util.UUID;
 
 import tech.lerk.meshtalk.db.entities.HandshakeDbo;
+import tech.lerk.meshtalk.entities.Handshake;
 
 @Dao
 public interface HandshakeDao {
@@ -43,4 +45,7 @@ public interface HandshakeDao {
 
     @Query("delete from handshake where id = :id")
     void deleteHandshakeById(UUID id);
+
+    @Query("select * from handshake where id = :id")
+    LiveData<HandshakeDbo> getHandshakeLiveDataById(UUID id);
 }

@@ -137,7 +137,7 @@
     <string name="action_back">Back</string>
     <string name="dialog_waiting_for_handshake_message_sending_handshake">Sending Handshake…</string>
     <string name="dialog_waiting_for_handshake_message_waiting_for_handshake">Waiting For Handshake…</string>
-    <string name="error_unable_to_determine_participant">Unable to determine participant!</string>
+    <string name="error_unable_to_determine_participants">Unable to determine participants!</string>
     <string name="success_sending_handshake">Handshake sent successfully!</string>
     <string name="info_fetching_messages">Fetching messages…</string>
     <string name="info_fetching_messages_no_default_identity">Automatic message fetching is not available without a default identity set.</string>
@@ -171,4 +171,6 @@
     <string name="list_item_mesage_message_time" translatable="false">YYYY-MM-DD HH:mm:ss</string>
     <string name="pref_title_chat_scroll_to_bottom_on_new_messages">Scroll To Bottom On New Messages</string>
     <string name="pref_summary_chat_scroll_to_bottom_on_new_messages">If selected, the application will scroll to the bottom automatically when a new message arrives in an open chat.</string>
+    <string name="dialog_waiting_for_handshake_checking_title">Checking for Handshake…</string>
+    <string name="progress_self_destruct_stopping_services">Stopping services...</string>
 </resources>

@@ -27,6 +27,7 @@ import java.util.UUID;
 
 import tech.lerk.meshtalk.Utils;
 import tech.lerk.meshtalk.entities.Handshake;
+import tech.lerk.meshtalk.providers.impl.ChatProvider;
 
 public class SubmitHandshakeWorker extends GatewayWorker {
     private static final String TAG = SubmitHandshakeWorker.class.getCanonicalName();
@@ -51,14 +52,17 @@ public class SubmitHandshakeWorker extends GatewayWorker {
             connection.setDoOutput(true);
             connection.connect();
             try {
+                UUID chatId = UUID.fromString(getInputData().getString(DataKeys.HANDSHAKE_CHAT.toString()));
+                UUID handshakeId = UUID.fromString(getInputData().getString(DataKeys.HANDSHAKE_ID.toString()));
                 Handshake handshake = new Handshake();
-                handshake.setId(UUID.fromString(getInputData().getString(DataKeys.HANDSHAKE_ID.toString())));
-                handshake.setChat(UUID.fromString(getInputData().getString(DataKeys.HANDSHAKE_CHAT.toString())));
+                handshake.setId(handshakeId);
+                handshake.setChat(chatId);
                 handshake.setSender(UUID.fromString(getInputData().getString(DataKeys.HANDSHAKE_SENDER.toString())));
                 handshake.setReceiver(UUID.fromString(getInputData().getString(DataKeys.HANDSHAKE_RECEIVER.toString())));
                 handshake.setDate(LocalDateTime.ofEpochSecond(getInputData().getLong(DataKeys.HANDSHAKE_DATE.toString(), 0), 0, ZoneOffset.UTC));
                 handshake.setKey(getInputData().getString(DataKeys.HANDSHAKE_KEY.toString()));
                 handshake.setIv(getInputData().getString(DataKeys.HANDSHAKE_IV.toString()));
+                handshake.setReply(UUID.fromString(getInputData().getString(DataKeys.HANDSHAKE_REPLY.toString())));
 
                 byte[] jsonBytes = gson.toJson(handshake).getBytes(StandardCharsets.UTF_8);
                 try (OutputStream os = connection.getOutputStream()) {
@@ -73,7 +77,14 @@ public class SubmitHandshakeWorker extends GatewayWorker {
                         result.append(s);
                         s = reader.readLine();
                     }
-                    String r = result.toString(); //TODO: remove debug stuff when no longer needed
+                    ChatProvider.get(getApplicationContext()).getById(chatId, chat -> {
+                        if (chat != null) {
+                            chat.setHandshake(handshakeId);
+                            ChatProvider.get(getApplicationContext()).save(chat);
+                        } else {
+                            Log.wtf(TAG, "Unable to find chat!");
+                        }
+                    });
                     return ListenableWorker.Result.success(new Data.Builder()
                             .putInt(DataKeys.ERROR_CODE.toString(), errorCode)
                             .build());

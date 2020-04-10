@@ -27,7 +27,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 
 import tech.lerk.meshtalk.Callback;
-import tech.lerk.meshtalk.MessagesService;
+import tech.lerk.meshtalk.MessageGatewayClientService;
 import tech.lerk.meshtalk.Stuff;
 import tech.lerk.meshtalk.db.DatabaseEntityConverter;
 import tech.lerk.meshtalk.db.entities.MessageDbo;
@@ -47,11 +47,6 @@ public class MessageProvider extends DatabaseProvider<Message> {
         handshakeProvider = HandshakeProvider.get(context);
     }
 
-    @Override
-    public void deleteAll() {
-        database.messageDao().deleteAll();
-    }
-
     public static MessageProvider get(Context context) {
         if (instance == null) {
             instance = new MessageProvider(context);
@@ -60,46 +55,54 @@ public class MessageProvider extends DatabaseProvider<Message> {
     }
 
     @Override
+    public void deleteAll() {
+        AsyncTask.execute(() -> database.messageDao().deleteAll());
+    }
+
+    @Override
     public void getById(UUID id, @NonNull Callback<Message> callback) {
-        callback.call(DatabaseEntityConverter.convert(database.messageDao().getMessageById(id)));
+        AsyncTask.execute(() -> callback.call(DatabaseEntityConverter.convert(database.messageDao().getMessageById(id))));
     }
 
     @Override
     public void save(Message element) {
-        database.messageDao().insertMessage(DatabaseEntityConverter.convert(element));
+        AsyncTask.execute(() -> database.messageDao().insertMessage(DatabaseEntityConverter.convert(element)));
     }
 
     @Override
     public void deleteById(UUID id) {
-        database.messageDao().deleteMessageById(id);
+        AsyncTask.execute(() -> database.messageDao().deleteMessageById(id));
     }
 
     @Override
     public void delete(Message element) {
-        database.messageDao().deleteMessage(DatabaseEntityConverter.convert(element));
+        AsyncTask.execute(() -> database.messageDao().deleteMessage(DatabaseEntityConverter.convert(element)));
     }
 
     @Override
     public void exists(UUID id, @NonNull Callback<Boolean> callback) {
-        callback.call(database.messageDao().getMessages().stream().anyMatch(m -> m.getId().equals(id)));
+        AsyncTask.execute(() -> callback.call(database.messageDao().getMessages().stream().anyMatch(m -> m.getId().equals(id))));
     }
 
     @Override
     public void getAll(@NonNull Callback<Set<Message>> callback) {
-        callback.call(database.messageDao().getMessages().stream()
+        AsyncTask.execute(() -> callback.call(database.messageDao().getMessages().stream()
                 .map(DatabaseEntityConverter::convert)
-                .collect(Collectors.toCollection(TreeSet::new)));
+                .collect(Collectors.toCollection(TreeSet::new))));
     }
 
-    public Message getLatestMessage(Chat chat) {
-        if (chat != null) {
-            List<MessageDbo> messagesByChat = database.messageDao().getMessagesByChat(chat.getId());
-            MessageDbo minMessage = messagesByChat.stream()
-                    .max((o1, o2) -> o1.getDate().compareTo(o2.getDate()))
-                    .orElse(null);
-            return DatabaseEntityConverter.convert(minMessage);
-        }
-        return null;
+    public void getLatestMessage(Chat chat, Callback<Message> callback) {
+        AsyncTask.execute(() -> {
+            if (chat != null) {
+                List<MessageDbo> messagesByChat = database.messageDao().getMessagesByChat(chat.getId());
+                MessageDbo minMessage = messagesByChat.stream()
+                        .max((o1, o2) -> o1.getDate().compareTo(o2.getDate()))
+                        .orElse(null);
+                callback.call(DatabaseEntityConverter.convert(minMessage));
+            } else {
+                callback.call(null);
+            }
+        });
     }
 
     public void decryptMessage(@NonNull String message, @NonNull Chat chat, @NonNull Callback<String> callback) {
@@ -108,10 +111,10 @@ public class MessageProvider extends DatabaseProvider<Message> {
                 if (handshake != null) {
                     identityProvider.getById(chat.getSender(), identity -> {
                         if (identity != null) {
-                            SecretKey chatKey = MessagesService.getSecretKeyFromHandshake(handshake, identity);
-                            byte[] chatIv = MessagesService.getIvFromHandshake(handshake, identity);
+                            SecretKey chatKey = MessageGatewayClientService.getSecretKeyFromHandshake(handshake, identity);
+                            byte[] chatIv = MessageGatewayClientService.getIvFromHandshake(handshake, identity);
                             if (chatKey != null && chatIv != null) {
-                                callback.call(decryptMessage(message, chatKey, chatIv));
+                                callback.call(decryptMessageSync(message, chatKey, chatIv));
                                 return;
                             } else {
                                 Log.e(TAG, "Chat key or iv is null!");
@@ -130,7 +133,7 @@ public class MessageProvider extends DatabaseProvider<Message> {
     }
 
     @Nullable
-    public String decryptMessage(@NonNull String message, @NonNull SecretKey chatKey, @NonNull byte[] chatIv) {
+    public String decryptMessageSync(@NonNull String message, @NonNull SecretKey chatKey, @NonNull byte[] chatIv) {
         try {
             Cipher c = Cipher.getInstance(Stuff.AES_MODE);
             c.init(Cipher.DECRYPT_MODE, chatKey, new GCMParameterSpec(128, chatIv));
@@ -152,8 +155,8 @@ public class MessageProvider extends DatabaseProvider<Message> {
                 if (handshake != null) {
                     identityProvider.getById(chat.getSender(), identity -> {
                         if (identity != null) {
-                            SecretKey chatKey = MessagesService.getSecretKeyFromHandshake(handshake, identity);
-                            byte[] chatIv = MessagesService.getIvFromHandshake(handshake, identity);
+                            SecretKey chatKey = MessageGatewayClientService.getSecretKeyFromHandshake(handshake, identity);
+                            byte[] chatIv = MessageGatewayClientService.getIvFromHandshake(handshake, identity);
                             try {
                                 if (chatKey != null) {
                                     Cipher c = Cipher.getInstance(Stuff.AES_MODE);
@@ -191,7 +194,7 @@ public class MessageProvider extends DatabaseProvider<Message> {
         AsyncTask.execute(() -> database.messageDao().deleteMessagesByChat(chatId));
     }
 
-    public LiveData<List<MessageDbo>> getLiveMessagesByChat(@NonNull UUID chatId) {
-        return database.messageDao().getLiveMessagesByChat(chatId);
+    public void getLiveMessagesByChat(@NonNull UUID chatId, Callback<LiveData<List<MessageDbo>>> callback) {
+        AsyncTask.execute(() -> callback.call(database.messageDao().getLiveMessagesByChat(chatId)));
     }
 }

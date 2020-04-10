@@ -22,10 +22,7 @@ public enum DataKeys {
     HANDSHAKE_CHAT("chat"),
     HANDSHAKE_DATE("date"),
     HANDSHAKE_KEY("key"),
-    HANDSHAKE_IV("iv"),
-    // HANDSHAKE LIST
-    HANDSHAKE_LIST_SIZE("handshake_list_size"),
-    HANDSHAKE_LIST_ELEMENT_PREFIX("handshake_list_elem_");
+    HANDSHAKE_IV("iv");
 
     private final String key;
 

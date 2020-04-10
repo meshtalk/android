@@ -1,5 +1,6 @@
 package tech.lerk.meshtalk.db.dao;
 
+import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
 import androidx.room.Delete;
 import androidx.room.Insert;
@@ -19,6 +20,9 @@ public interface ChatDao {
 
     @Query("select * from chat where id = :id")
     ChatDbo getChatById(UUID id);
+
+    @Query("select * from chat where id = :id")
+    LiveData<ChatDbo> getChatLiveDataById(UUID id);
 
     @Query("select * from chat where sender = :senderId")
     List<ChatDbo> getChatsBySender(UUID senderId);
@@ -40,4 +44,7 @@ public interface ChatDao {
 
     @Query("delete from chat where 1 = 1")
     void deleteAll();
+
+    @Query("select * from chat")
+    LiveData<List<ChatDbo>> getChatsLiveData();
 }

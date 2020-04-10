@@ -1,6 +1,7 @@
 package tech.lerk.meshtalk.providers.impl;
 
 import android.content.Context;
+import android.os.AsyncTask;
 
 import androidx.annotation.NonNull;
 
@@ -39,38 +40,38 @@ public class ContactProvider extends DatabaseProvider<Contact> {
 
     @Override
     public void getById(UUID id, @NonNull Callback<Contact> callback) {
-        callback.call(DatabaseEntityConverter.convert(database.contactDao().getContactById(id)));
+        AsyncTask.execute(() -> callback.call(DatabaseEntityConverter.convert(database.contactDao().getContactById(id))));
     }
 
     @Override
     public void save(Contact contact) {
-        database.contactDao().insertContact(DatabaseEntityConverter.convert(contact));
+        AsyncTask.execute(() -> database.contactDao().insertContact(DatabaseEntityConverter.convert(contact)));
     }
 
     @Override
     public void deleteById(UUID id) {
-        database.contactDao().deleteContactById(id);
+        AsyncTask.execute(() -> database.contactDao().deleteContactById(id));
     }
 
     @Override
     public void delete(Contact element) {
-        database.contactDao().deleteContact(DatabaseEntityConverter.convert(element));
+        AsyncTask.execute(() -> database.contactDao().deleteContact(DatabaseEntityConverter.convert(element)));
     }
 
     @Override
     public void exists(UUID id, @NonNull Callback<Boolean> callback) {
-        callback.call(database.contactDao().getContacts().stream().anyMatch(c -> c.getId().equals(id)));
+        AsyncTask.execute(() -> callback.call(database.contactDao().getContacts().stream().anyMatch(c -> c.getId().equals(id))));
     }
 
     @Override
     public void getAll(@NonNull Callback<Set<Contact>> callback) {
-        callback.call(database.contactDao().getContacts().stream()
+        AsyncTask.execute(() -> callback.call(database.contactDao().getContacts().stream()
                 .map(DatabaseEntityConverter::convert)
-                .collect(Collectors.toCollection(TreeSet::new)));
+                .collect(Collectors.toCollection(TreeSet::new))));
     }
 
     @Override
     public void deleteAll() {
-        database.contactDao().deleteAll();
+        AsyncTask.execute(() -> database.contactDao().deleteAll());
     }
 }

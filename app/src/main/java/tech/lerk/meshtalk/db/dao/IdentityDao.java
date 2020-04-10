@@ -1,5 +1,6 @@
 package tech.lerk.meshtalk.db.dao;
 
+import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
 import androidx.room.Delete;
 import androidx.room.Insert;
@@ -34,4 +35,7 @@ public interface IdentityDao {
 
     @Query("delete from identity where 1 = 1")
     void deleteAll();
+
+    @Query("select * from identity")
+    LiveData<List<IdentityDbo>> getIdentitiesLiveData();
 }

@@ -26,11 +26,18 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.UUID;
 
+import tech.lerk.meshtalk.Callback;
+import tech.lerk.meshtalk.MainActivity;
+import tech.lerk.meshtalk.Preferences;
 import tech.lerk.meshtalk.R;
 import tech.lerk.meshtalk.Utils;
+import tech.lerk.meshtalk.entities.Chat;
 import tech.lerk.meshtalk.entities.Handshake;
-import tech.lerk.meshtalk.Preferences;
+import tech.lerk.meshtalk.providers.impl.ChatProvider;
+import tech.lerk.meshtalk.providers.impl.ContactProvider;
+import tech.lerk.meshtalk.providers.impl.HandshakeProvider;
 
 public class FetchHandshakesWorker extends GatewayWorker {
     private static final String TAG = FetchHandshakesWorker.class.getCanonicalName();
@@ -38,10 +45,16 @@ public class FetchHandshakesWorker extends GatewayWorker {
     public static final int ERROR_NOT_FOUND = 4;
 
     private final Gson gson;
+    private final ChatProvider chatProvider;
+    private final ContactProvider contactProvider;
+    private final HandshakeProvider handshakeProvider;
 
     public FetchHandshakesWorker(@NonNull Context context, @NonNull WorkerParameters params) {
         super(context, params);
         gson = Utils.getGson();
+        chatProvider = ChatProvider.get(getApplicationContext());
+        contactProvider = ContactProvider.get(getApplicationContext());
+        handshakeProvider = HandshakeProvider.get(getApplicationContext());
     }
 
     @NonNull
@@ -69,31 +82,57 @@ public class FetchHandshakesWorker extends GatewayWorker {
             handshakes.addAll(senderPair.second);
             handshakes.addAll(receiverPair.second);
 
-            Data.Builder dataBuilder = new Data.Builder().putInt(DataKeys.ERROR_CODE.toString(), pickGreater(senderRes, receiverRes));
-            dataBuilder.putInt(DataKeys.HANDSHAKE_LIST_SIZE.toString(), handshakes.size());
-            for (int i = 0; i < handshakes.size(); i++) {
-                dataBuilder.putString(DataKeys.HANDSHAKE_LIST_ELEMENT_PREFIX + String.valueOf(i), gson.toJson(handshakes.get(i)));
-            }
-            return ListenableWorker.Result.success(dataBuilder.build());
+            handshakes.forEach(this::handleHandshake);
+            return ListenableWorker.Result.success(new Data.Builder().putInt(DataKeys.ERROR_CODE.toString(), ERROR_NONE).build());
         }
-        return ListenableWorker.Result.failure(new Data.Builder().putInt(DataKeys.ERROR_CODE.toString(), -1).build());
+        return ListenableWorker.Result.failure(new Data.Builder().putInt(DataKeys.ERROR_CODE.toString(), ERROR_INVALID_SETTINGS).build());
     }
 
-    /**
-     * Returns the greater of two integers. If equal the first one will eb returned.
-     *
-     * @param a first int
-     * @param b second int
-     * @return which ever int is greater or the first one if they are equal
-     */
-    private Integer pickGreater(Integer a, Integer b) {
-        if (a > b) {
-            return a;
-        } else if (a < b) {
-            return b;
-        } else {
-            return a;
-        }
+    private void handleHandshake(Handshake handshake) {
+
+        Log.i(TAG, "Handshake received from: '" + handshake.getSender() + "'!");
+        handshakeProvider.exists(handshake.getId(), knownHandshake -> {
+            if (knownHandshake == null || !knownHandshake) {
+                chatProvider.getById(handshake.getChat(), chat -> {
+                    if (chat == null) { // new chat
+                        //TODO add ability to decline a chat (?)
+                        getChatName(handshake.getSender(), chatName -> {
+                            Chat newChat = new Chat();
+                            newChat.setId(handshake.getChat());
+                            newChat.setRecipient(handshake.getSender());
+                            newChat.setSender(handshake.getReceiver());
+                            newChat.setTitle(chatName);
+                            newChat.setHandshake(handshake.getId());
+                            saveAndUpdate(handshake, newChat);
+                        });
+                    } else {
+                        handshakeProvider.getById(chat.getHandshake(), chatHandshake -> {
+                            if (chatHandshake == null || chatHandshake.getDate().isBefore(handshake.getDate())) {
+                                chat.setHandshake(handshake.getId());
+                            }
+                            saveAndUpdate(handshake, chat);
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    private void getChatName(UUID sender, Callback<String> callback) {
+        String title = "Chat with ";
+        contactProvider.getById(sender, contact -> {
+            if (contact == null) {
+                callback.call(title + sender);
+            } else {
+                callback.call(title + contact.getName());
+            }
+        });
+    }
+
+    private void saveAndUpdate(Handshake handshake, Chat newChat) {
+        handshakeProvider.save(handshake);
+        chatProvider.save(newChat);
+        MainActivity.maybeUpdateViews();
     }
 
     private Pair<Integer, ArrayList<Handshake>> fetchHandshakesSender(String identityId, GatewayInfo gatewayInfo) {

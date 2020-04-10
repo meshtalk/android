@@ -1,6 +1,7 @@
 package tech.lerk.meshtalk.ui.settings;
 
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.widget.ProgressBar;
@@ -15,6 +16,8 @@ import androidx.preference.PreferenceManager;
 import java.util.Objects;
 
 import tech.lerk.meshtalk.KeyHolder;
+import tech.lerk.meshtalk.MainActivity;
+import tech.lerk.meshtalk.MessageGatewayClientService;
 import tech.lerk.meshtalk.R;
 import tech.lerk.meshtalk.Preferences;
 import tech.lerk.meshtalk.providers.impl.ChatProvider;
@@ -68,35 +71,41 @@ public class SettingsFragment extends PreferenceFragmentCompat {
         TextView loadingTextView = Objects.requireNonNull(loadingDialog.findViewById(R.id.loading_text));
         AsyncTask.execute(() -> {
             requireActivity().runOnUiThread(() -> {
-                progressBar.setProgress(1, true);
+                progressBar.setProgress(0, true);
+                loadingTextView.setText(R.string.progress_self_destruct_stopping_services);
+            });
+            ((MainActivity) requireActivity()).setRunService(false);
+            requireActivity().stopService(new Intent(requireActivity().getApplicationContext(), MessageGatewayClientService.class));
+            requireActivity().runOnUiThread(() -> {
+                progressBar.setProgress(1, false);
                 loadingTextView.setText(R.string.progress_self_destruct_deleting_contacts);
             });
             ContactProvider contactProvider = ContactProvider.get(requireContext());
             contactProvider.deleteAll();
             waitOrDonT(200);
             requireActivity().runOnUiThread(() -> {
-                progressBar.setProgress(10, true);
+                progressBar.setProgress(10, false);
                 loadingTextView.setText(R.string.progress_self_destruct_deleting_messages);
             });
             MessageProvider messageProvider = MessageProvider.get(requireContext());
             messageProvider.deleteAll();
             waitOrDonT(200);
             requireActivity().runOnUiThread(() -> {
-                progressBar.setProgress(20, true);
+                progressBar.setProgress(20, false);
                 loadingTextView.setText(R.string.progress_self_destruct_deleting_chats);
             });
             ChatProvider chatProvider = ChatProvider.get(requireContext());
             chatProvider.deleteAll();
             waitOrDonT(200);
             requireActivity().runOnUiThread(() -> {
-                progressBar.setProgress(30, true);
+                progressBar.setProgress(30, false);
                 loadingTextView.setText(R.string.progress_self_destruct_deleting_identities);
             });
             IdentityProvider identityProvider = IdentityProvider.get(requireContext());
             identityProvider.deleteAll();
             waitOrDonT(200);
             requireActivity().runOnUiThread(() -> {
-                progressBar.setProgress(40, true);
+                progressBar.setProgress(40, false);
                 loadingTextView.setText(R.string.progress_self_destruct_deleting_app_key);
             });
             keyHolder.deleteAppKey();

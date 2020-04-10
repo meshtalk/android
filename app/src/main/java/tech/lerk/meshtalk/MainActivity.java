@@ -54,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
     private KeyHolder keyHolder;
     private NavController navController;
     private NavigationView navigationView;
+    private boolean runService = true;
 
     public static void maybeUpdateViews() {
         if (instance != null) {
@@ -254,10 +255,16 @@ public class MainActivity extends AppCompatActivity {
             t.scheduleAtFixedRate(new TimerTask() {
                 @Override
                 public void run() {
-                    startService(new Intent(getApplicationContext(), MessagesService.class));
+                    if (runService) {
+                        boolean useMessageGateway = preferences.getBoolean(Preferences.USE_MESSAGE_GATEWAY.toString(), true);
+                        if (useMessageGateway) {
+                            startService(new Intent(getApplicationContext(), MessageGatewayClientService.class));
+                        } else {
+                            //TODO: implement mesh stuff
+                        }
+                    }
                 }
             }, 0, 7000);
-
         } else {
             Toast.makeText(getApplicationContext(), R.string.info_fetching_messages_no_default_identity, Toast.LENGTH_LONG).show();
         }
@@ -338,5 +345,9 @@ public class MainActivity extends AppCompatActivity {
 
     public NavController getNavController() {
         return navController;
+    }
+
+    public void setRunService(boolean runService) {
+        this.runService = runService;
     }
 }

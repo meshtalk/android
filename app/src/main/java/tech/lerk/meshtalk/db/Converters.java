@@ -1,5 +1,6 @@
 package tech.lerk.meshtalk.db;
 
+import androidx.annotation.Nullable;
 import androidx.room.TypeConverter;
 
 import com.google.gson.reflect.TypeToken;
@@ -13,14 +14,22 @@ import tech.lerk.meshtalk.Utils;
 import tech.lerk.meshtalk.entities.Handshake;
 
 public class Converters {
+    @Nullable
     @TypeConverter
     public static UUID uuid(String uuid) {
-        return UUID.fromString(uuid);
+        if (uuid != null && !uuid.isEmpty()) {
+            return UUID.fromString(uuid);
+        }
+        return null;
     }
 
+    @Nullable
     @TypeConverter
     public static String uuid(UUID uuid) {
-        return uuid.toString();
+        if (uuid != null) {
+            return uuid.toString();
+        }
+        return null;
     }
 
     @TypeConverter

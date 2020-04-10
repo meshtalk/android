@@ -28,7 +28,7 @@ public class UIMessage extends Message {
         u.setChat(m.getChat());
         u.setContent(m.getContent());
         u.setSenderName(sender.getName());
-        u.setDecryptedText(messageProvider.decryptMessage(m.getContent(), chatKey, chatIv));
+        u.setDecryptedText(messageProvider.decryptMessageSync(m.getContent(), chatKey, chatIv));
         return u;
     }
 
