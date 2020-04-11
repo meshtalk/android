@@ -23,7 +23,6 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.emoji.bundled.BundledEmojiCompatConfig;
 import androidx.emoji.text.EmojiCompat;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentActivity;
 import androidx.preference.PreferenceManager;
 import androidx.work.Data;
 import androidx.work.OneTimeWorkRequest;
@@ -143,29 +142,21 @@ public class ConversationFragment extends Fragment {
                 messageProvider.getByChat(currentChat.getId(), messages ->
                         handshakeProvider.getById(currentChat.getHandshake(), handshake -> {
                             if (handshake != null) {
-                                identityProvider.getById(currentChat.getSender(), identity -> {
-                                    if (identity != null) {
-                                        SecretKey chatKey = getSecretKeyFromHandshake(handshake, identity);
-                                        byte[] chatIv = getIvFromHandshake(handshake, identity);
-                                        if (chatKey != null && chatIv != null && messages != null) {
-                                            getUIMessages(messages, chatKey, chatIv, uiMessages -> {
-                                                if (uiMessages != null) {
-                                                    requireActivity().runOnUiThread(() -> {
-                                                        loadingDialog.dismiss();
-                                                        initUi(root, uiMessages);
-                                                        addMessageObserver(chatKey, chatIv);
-                                                    });
-                                                } else {
-                                                    Log.wtf(TAG, "Converted messages list is null!");
-                                                }
-                                            });
+                                if (handshake.getReceiver().equals(chat.getSender())) {
+                                    getKeysAndInit(root, loadingDialog, messages, handshake);
+                                } else {
+                                    handshakeProvider.getById(handshake.getReply(), reply -> {
+                                        if (reply != null) {
+                                            if (reply.getReceiver().equals(chat.getSender())) {
+                                                getKeysAndInit(root, loadingDialog, messages, reply);
+                                            } else {
+                                                Log.wtf(TAG, "Not participating in chat!");
+                                            }
                                         } else {
-                                            Log.e(TAG, "Chat key, iv or messages invalid!");
+                                            Log.wtf(TAG, "Handshake reply is null!");
                                         }
-                                    } else {
-                                        Log.e(TAG, "Identity is null!");
-                                    }
-                                });
+                                    });
+                                }
                             }
                             loadingDialog.dismiss();
                             requireActivity().runOnUiThread(this::checkForHandshake);
@@ -176,6 +167,32 @@ public class ConversationFragment extends Fragment {
         });
 
         return root;
+    }
+
+    private void getKeysAndInit(View root, AlertDialog loadingDialog, List<Message> messages, Handshake handshake) {
+        identityProvider.getById(currentChat.getSender(), identity -> {
+            if (identity != null) {
+                SecretKey chatKey = getSecretKeyFromHandshake(handshake, identity);
+                byte[] chatIv = getIvFromHandshake(handshake, identity);
+                if (chatKey != null && chatIv != null && messages != null) {
+                    getUIMessages(messages, chatKey, chatIv, uiMessages -> {
+                        if (uiMessages != null) {
+                            requireActivity().runOnUiThread(() -> {
+                                loadingDialog.dismiss();
+                                initUi(root, uiMessages);
+                                addMessageObserver(chatKey, chatIv);
+                            });
+                        } else {
+                            Log.wtf(TAG, "Converted messages list is null!");
+                        }
+                    });
+                } else {
+                    Log.e(TAG, "Chat key, iv or messages invalid!");
+                }
+            } else {
+                Log.e(TAG, "Identity is null!");
+            }
+        });
     }
 
     private void addMessageObserver(SecretKey chatKey, byte[] chatIv) {
@@ -210,12 +227,17 @@ public class ConversationFragment extends Fragment {
 
     private void initUi(View root, @NonNull List<UIMessage> messages) {
         ((Toolbar) requireActivity().findViewById(R.id.toolbar)).setTitle(currentChat.getTitle());
-        if (messages.size() > 0) {
-            emptyList.setVisibility(View.INVISIBLE);
-        } else {
-            emptyList.setVisibility(View.VISIBLE);
-        }
         listViewAdapter = new ArrayAdapter<UIMessage>(requireContext(), R.layout.list_item_message, messages) {
+            @Override
+            public void notifyDataSetChanged() {
+                super.notifyDataSetChanged();
+                if (messages.size() > 0) {
+                    emptyList.setVisibility(View.INVISIBLE);
+                } else {
+                    emptyList.setVisibility(View.VISIBLE);
+                }
+            }
+
             @NonNull
             @Override
             public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
@@ -239,6 +261,7 @@ public class ConversationFragment extends Fragment {
                 return v;
             }
         };
+        listViewAdapter.setNotifyOnChange(true);
         listViewAdapter.sort(Sendable::compareTo);
         listView.setAdapter(listViewAdapter);
         scrollButton.setOnClickListener(v -> scrollToBottom());
@@ -266,22 +289,23 @@ public class ConversationFragment extends Fragment {
         listView.smoothScrollToPositionFromTop(listViewAdapter.getCount() + 1, 0);
     }
 
-    private void updateUi(@Nullable ArrayList<UIMessage> uiMessages) {
-        if (uiMessages != null) {
-            int preCount = listViewAdapter.getCount();
-            if (preCount != uiMessages.size()) {
-                if (uiMessages.size() > 0) {
-                    emptyList.setVisibility(View.INVISIBLE);
-                } else {
-                    emptyList.setVisibility(View.VISIBLE);
+    private void updateUi(@Nullable ArrayList<UIMessage> updatedMessages) {
+        if (updatedMessages != null) {
+            for (int i = 0; i < listViewAdapter.getCount(); i++) {
+                updatedMessages.add(listViewAdapter.getItem(i));
+            }
+            listViewAdapter.clear();
+            ArrayList<UIMessage> uniqueMessages = new ArrayList<>();
+            updatedMessages.forEach(m -> {
+                boolean duplicatedId = uniqueMessages.stream().anyMatch(uim -> uim.getId().equals(m.getId()));
+                if (!duplicatedId) {
+                    uniqueMessages.add(m);
                 }
-                listViewAdapter.clear();
-                listViewAdapter.addAll(uiMessages);
-                listViewAdapter.sort(Sendable::compareTo);
-                checkForHandshake();
-                if (preferences.getBoolean(Preferences.CHAT_SCROLL_TO_BOTTOM_ON_NEW_MESSAGES.toString(), true)) {
-                    scrollToBottom();
-                }
+            });
+            listViewAdapter.addAll(uniqueMessages);
+            listViewAdapter.sort(Sendable::compareTo);
+            if (preferences.getBoolean(Preferences.CHAT_SCROLL_TO_BOTTOM_ON_NEW_MESSAGES.toString(), true)) {
+                scrollToBottom();
             }
         } else {
             Log.e(TAG, "Messages are null!");
@@ -289,57 +313,57 @@ public class ConversationFragment extends Fragment {
     }
 
     private void sendMessage(String message, Chat chat, Callback<Boolean> callback) {
-        Stuff.determineSelfId(chat.getSender(), chat.getRecipient(), identityProvider, selfId ->
-                Stuff.determineOtherId(chat.getSender(), chat.getRecipient(), identityProvider, otherId -> {
-                    if (selfId != null && otherId != null) {
-                        messageProvider.encryptMessage(message, chat, encryptedMessage -> {
-                            Data messageData = new Data.Builder()
-                                    .putString(DataKeys.MESSAGE_ID.toString(), UUID.randomUUID().toString())
-                                    .putString(DataKeys.MESSAGE_CHAT.toString(), chat.getId().toString())
-                                    .putString(DataKeys.MESSAGE_SENDER.toString(), selfId.toString())
-                                    .putString(DataKeys.MESSAGE_RECEIVER.toString(), otherId.toString())
-                                    .putLong(DataKeys.MESSAGE_DATE.toString(), LocalDateTime.now().toEpochSecond(ZoneOffset.UTC))
-                                    .putString(DataKeys.MESSAGE_CONTENT.toString(), encryptedMessage)
-                                    .build();
+        UUID selfId = chat.getSender();
+        UUID otherId = chat.getRecipient();
+        if (selfId != null && otherId != null) {
+            messageProvider.encryptMessage(message, chat, encryptedMessage -> {
+                Data messageData = new Data.Builder()
+                        .putString(DataKeys.MESSAGE_ID.toString(), UUID.randomUUID().toString())
+                        .putString(DataKeys.MESSAGE_CHAT.toString(), chat.getId().toString())
+                        .putString(DataKeys.MESSAGE_SENDER.toString(), selfId.toString())
+                        .putString(DataKeys.MESSAGE_RECEIVER.toString(), otherId.toString())
+                        .putLong(DataKeys.MESSAGE_DATE.toString(), LocalDateTime.now().toEpochSecond(ZoneOffset.UTC))
+                        .putString(DataKeys.MESSAGE_CONTENT.toString(), encryptedMessage)
+                        .build();
 
-                            OneTimeWorkRequest sendMessageWorkRequest = new OneTimeWorkRequest.Builder(SubmitMessageWorker.class)
-                                    .setInputData(messageData).build();
-                            WorkManager workManager = WorkManager.getInstance(requireContext());
-                            workManager.enqueue(sendMessageWorkRequest);
+                OneTimeWorkRequest sendMessageWorkRequest = new OneTimeWorkRequest.Builder(SubmitMessageWorker.class)
+                        .setInputData(messageData).build();
+                WorkManager workManager = WorkManager.getInstance(requireContext());
+                workManager.enqueue(sendMessageWorkRequest);
 
-                            requireActivity().runOnUiThread(() ->
-                                    workManager.getWorkInfoByIdLiveData(sendMessageWorkRequest.getId()).observe(requireActivity(), info -> {
-                                        if (info != null && info.getState().isFinished()) {
-                                            Data data = info.getOutputData();
-                                            int errorCode = data.getInt(DataKeys.ERROR_CODE.toString(), -1);
-                                            switch (errorCode) {
-                                                case SubmitMessageWorker.ERROR_INVALID_SETTINGS:
-                                                case SubmitMessageWorker.ERROR_URI:
-                                                case SubmitMessageWorker.ERROR_CONNECTION:
-                                                case SubmitMessageWorker.ERROR_PARSING:
-                                                    String msg = "Got error " + errorCode + " while sending message!";
-                                                    Log.e(TAG, msg);
-                                                    Toast.makeText(requireContext(), msg, Toast.LENGTH_LONG).show();
-                                                    callback.call(false);
-                                                    break;
-                                                case SubmitMessageWorker.ERROR_NONE:
-                                                    if (preferences.getBoolean(Preferences.TOAST_MESSAGE_SENT.toString(), true)) {
-                                                        Toast.makeText(requireContext(), R.string.success_sending_message, Toast.LENGTH_LONG).show();
-                                                    }
-                                                    callback.call(true);
-                                                    break;
-                                                default:
-                                                    Log.wtf(TAG, "Invalid errorCode: " + errorCode + "!");
-                                                    break;
-                                            }
+                requireActivity().runOnUiThread(() ->
+                        workManager.getWorkInfoByIdLiveData(sendMessageWorkRequest.getId()).observe(requireActivity(), info -> {
+                            if (info != null && info.getState().isFinished()) {
+                                Data data = info.getOutputData();
+                                int errorCode = data.getInt(DataKeys.ERROR_CODE.toString(), -1);
+                                switch (errorCode) {
+                                    case SubmitMessageWorker.ERROR_INVALID_SETTINGS:
+                                    case SubmitMessageWorker.ERROR_URI:
+                                    case SubmitMessageWorker.ERROR_CONNECTION:
+                                    case SubmitMessageWorker.ERROR_PARSING:
+                                        String msg = "Got error " + errorCode + " while sending message!";
+                                        Log.e(TAG, msg);
+                                        Toast.makeText(requireContext(), msg, Toast.LENGTH_LONG).show();
+                                        callback.call(false);
+                                        break;
+                                    case SubmitMessageWorker.ERROR_NONE:
+                                        if (preferences.getBoolean(Preferences.TOAST_MESSAGE_SENT.toString(), true)) {
+                                            Toast.makeText(requireContext(), R.string.success_sending_message, Toast.LENGTH_LONG).show();
                                         }
-                                    })
-                            );
-                        });
-                    } else {
-                        throw new IllegalStateException("Unable to determine ids!");
-                    }
-                }));
+                                        callback.call(true);
+                                        break;
+                                    default:
+                                        Log.wtf(TAG, "Invalid errorCode: " + errorCode + "!");
+                                        break;
+                                }
+                            }
+                        })
+                );
+            });
+        } else {
+            throw new IllegalStateException("Unable to determine ids!");
+        }
+
     }
 
     private void checkForHandshake() {
@@ -486,39 +510,26 @@ public class ConversationFragment extends Fragment {
     }
 
     private void startWaitingForHandshake(AlertDialog alertDialog) {
-        handshakeProvider.getLiveDataById(currentChat.getHandshake(), liveData -> {
-            if (liveData != null) {
-                requireActivity().runOnUiThread(() -> {
-                    liveData.observe(getViewLifecycleOwner(), hdbo -> {
-                        Handshake handshake = DatabaseEntityConverter.convert(hdbo);
-                        requireActivity().runOnUiThread(() -> {
-                            ProgressBar progressBar = Objects.requireNonNull(alertDialog.findViewById(R.id.loading_spinner));
-                            TextView loadingTextView = Objects.requireNonNull(alertDialog.findViewById(R.id.loading_text));
-                            progressBar.setProgress(80, true);
-                            loadingTextView.setText(R.string.dialog_waiting_for_handshake_message_waiting_for_handshake);
-                            if (handshake != null) {
-                                handshakeProvider.getById(handshake.getReply(), reply -> {
-                                    FragmentActivity activity = getActivity();
-                                    if (activity != null) {
-                                        activity.runOnUiThread(() -> {
-                                            if (reply != null) {
-                                                alertDialog.dismiss();
-                                            } else {
-                                                Log.i(TAG, "Still waiting for handshake reply...");
-                                            }
-                                        });
+        handshakeProvider.getById(currentChat.getHandshake(), handshake -> {
+            if (handshake != null) {
+                handshakeProvider.getLiveDataById(handshake.getReply(), liveData -> {
+                    if (liveData != null) {
+                        requireActivity().runOnUiThread(() ->
+                                liveData.observe(getViewLifecycleOwner(), hdbo -> {
+                                    Handshake reply = DatabaseEntityConverter.convert(hdbo);
+                                    if (reply != null) {
+                                        Log.i(TAG, "Handshake reply received!");
+                                        requireActivity().runOnUiThread(alertDialog::dismiss);
                                     } else {
-                                        Log.w(TAG, "Unable to get activity!");
+                                        Log.i(TAG, "Still waiting for handshake reply...");
                                     }
-                                });
-                            } else {
-                                Log.e(TAG, "Handshake is null!");
-                            }
-                        });
-                    });
+                                }));
+                    } else {
+                        Log.wtf(TAG, "Unable to get handshake LiveData!");
+                    }
                 });
             } else {
-                Log.wtf(TAG, "Unable to get handshake LiveData!");
+                Log.wtf(TAG, "Handshake is null!");
             }
         });
     }
@@ -564,6 +575,10 @@ public class ConversationFragment extends Fragment {
                                         Toast.makeText(requireContext(), R.string.success_sending_handshake, Toast.LENGTH_LONG).show();
                                         currentChat.setHandshake(handshakeId);
                                         chatProvider.save(currentChat);
+                                        ProgressBar progressBar = Objects.requireNonNull(alertDialog.findViewById(R.id.loading_spinner));
+                                        TextView loadingTextView = Objects.requireNonNull(alertDialog.findViewById(R.id.loading_text));
+                                        progressBar.setProgress(80, true);
+                                        loadingTextView.setText(R.string.dialog_waiting_for_handshake_message_waiting_for_handshake);
                                         startWaitingForHandshake(alertDialog);
                                         break;
                                     default:

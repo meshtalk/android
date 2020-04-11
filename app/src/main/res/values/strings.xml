@@ -172,5 +172,6 @@
     <string name="pref_title_chat_scroll_to_bottom_on_new_messages">Scroll To Bottom On New Messages</string>
     <string name="pref_summary_chat_scroll_to_bottom_on_new_messages">If selected, the application will scroll to the bottom automatically when a new message arrives in an open chat.</string>
     <string name="dialog_waiting_for_handshake_checking_title">Checking for Handshake…</string>
-    <string name="progress_self_destruct_stopping_services">Stopping services...</string>
+    <string name="progress_self_destruct_stopping_services">Stopping services…</string>
+    <string name="not_connected">Not connected…</string>
 </resources>

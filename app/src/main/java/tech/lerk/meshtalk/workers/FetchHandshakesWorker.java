@@ -38,6 +38,7 @@ import tech.lerk.meshtalk.entities.Handshake;
 import tech.lerk.meshtalk.providers.impl.ChatProvider;
 import tech.lerk.meshtalk.providers.impl.ContactProvider;
 import tech.lerk.meshtalk.providers.impl.HandshakeProvider;
+import tech.lerk.meshtalk.providers.impl.IdentityProvider;
 
 public class FetchHandshakesWorker extends GatewayWorker {
     private static final String TAG = FetchHandshakesWorker.class.getCanonicalName();
@@ -48,6 +49,7 @@ public class FetchHandshakesWorker extends GatewayWorker {
     private final ChatProvider chatProvider;
     private final ContactProvider contactProvider;
     private final HandshakeProvider handshakeProvider;
+    private final IdentityProvider identityProvider;
 
     public FetchHandshakesWorker(@NonNull Context context, @NonNull WorkerParameters params) {
         super(context, params);
@@ -55,14 +57,15 @@ public class FetchHandshakesWorker extends GatewayWorker {
         chatProvider = ChatProvider.get(getApplicationContext());
         contactProvider = ContactProvider.get(getApplicationContext());
         handshakeProvider = HandshakeProvider.get(getApplicationContext());
+        identityProvider = IdentityProvider.get(getApplicationContext());
     }
 
     @NonNull
     @Override
     public Result doWork() {
         GatewayInfo gatewayInfo = getGatewayInfo();
-        String defaultdentityString = preferences.getString(Preferences.DEFAULT_IDENTITY.toString(), null);
-        if (defaultdentityString != null) {
+        String defaultIdentityString = preferences.getString(Preferences.DEFAULT_IDENTITY.toString(), null);
+        if (defaultIdentityString != null) {
             if (Looper.myLooper() == null) {
                 Looper.prepare();
             }
@@ -70,8 +73,8 @@ public class FetchHandshakesWorker extends GatewayWorker {
 
             ArrayList<Handshake> handshakes = new ArrayList<>();
 
-            Pair<Integer, ArrayList<Handshake>> senderPair = fetchHandshakesSender(defaultdentityString, gatewayInfo);
-            Pair<Integer, ArrayList<Handshake>> receiverPair = fetchHandshakesReceiver(defaultdentityString, gatewayInfo);
+            Pair<Integer, ArrayList<Handshake>> senderPair = fetchHandshakesSender(defaultIdentityString, gatewayInfo);
+            Pair<Integer, ArrayList<Handshake>> receiverPair = fetchHandshakesReceiver(defaultIdentityString, gatewayInfo);
 
             Integer receiverRes = receiverPair.first;
             Integer senderRes = senderPair.first;
@@ -89,33 +92,57 @@ public class FetchHandshakesWorker extends GatewayWorker {
     }
 
     private void handleHandshake(Handshake handshake) {
-
-        Log.i(TAG, "Handshake received from: '" + handshake.getSender() + "'!");
         handshakeProvider.exists(handshake.getId(), knownHandshake -> {
             if (knownHandshake == null || !knownHandshake) {
-                chatProvider.getById(handshake.getChat(), chat -> {
-                    if (chat == null) { // new chat
-                        //TODO add ability to decline a chat (?)
-                        getChatName(handshake.getSender(), chatName -> {
-                            Chat newChat = new Chat();
-                            newChat.setId(handshake.getChat());
-                            newChat.setRecipient(handshake.getSender());
-                            newChat.setSender(handshake.getReceiver());
-                            newChat.setTitle(chatName);
-                            newChat.setHandshake(handshake.getId());
-                            saveAndUpdate(handshake, newChat);
+                handshakeOfInterest(handshake, result -> {
+                    if (result != null && result) {
+                        Log.i(TAG, "Handshake received from: '" + handshake.getSender() + "'!");
+                        chatProvider.getById(handshake.getChat(), chat -> {
+                            if (chat == null) { // new chat
+                                //TODO add ability to decline a chat (?)
+                                getChatName(handshake.getSender(), chatName -> {
+                                    Chat newChat = new Chat();
+                                    newChat.setId(handshake.getChat());
+                                    newChat.setRecipient(handshake.getSender());
+                                    newChat.setSender(handshake.getReceiver());
+                                    newChat.setTitle(chatName);
+                                    newChat.setHandshake(handshake.getId());
+                                    saveAndUpdate(handshake, newChat);
+                                });
+                            } else {
+                                Log.i(TAG, "Already known chat: '" + chat.getId() + "'!");
+                                handshakeProvider.save(handshake);
+                            }
                         });
                     } else {
-                        handshakeProvider.getById(chat.getHandshake(), chatHandshake -> {
-                            if (chatHandshake == null || chatHandshake.getDate().isBefore(handshake.getDate())) {
-                                chat.setHandshake(handshake.getId());
-                            }
-                            saveAndUpdate(handshake, chat);
-                        });
+                        Log.i(TAG, "Ignoring handshake: '" + handshake.getId() + "'...");
                     }
                 });
             }
         });
+    }
+
+    private void handshakeOfInterest(Handshake handshake, Callback<Boolean> callback) {
+        contactProvider.getById(handshake.getSender(), existingContactSender ->
+                contactProvider.getById(handshake.getReceiver(), existingContactReceiver ->
+                        identityProvider.getById(handshake.getSender(), existingIdentitySender ->
+                                identityProvider.getById(handshake.getReceiver(), existingIdentityReceiver -> {
+                                    if (existingContactReceiver != null) {
+                                        callback.call(true);
+                                        return;
+                                    } else if (existingIdentityReceiver != null) {
+                                        callback.call(true);
+                                        return;
+                                    }
+                                    if (existingContactSender != null) {
+                                        callback.call(true);
+                                        return;
+                                    } else if (existingIdentitySender != null) {
+                                        callback.call(true);
+                                        return;
+                                    }
+                                    callback.call(false);
+                                }))));
     }
 
     private void getChatName(UUID sender, Callback<String> callback) {

@@ -68,8 +68,7 @@
             android:ellipsize="marquee"
             android:layout_marginTop="-3dp"
             android:singleLine="true"
-            android:text="Connection Indicator! Not Initialized."
-            tools:ignore="HardcodedText" />
+            android:text="@string/not_connected" />
     </RelativeLayout>
 
 </RelativeLayout>

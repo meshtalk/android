@@ -23,11 +23,15 @@ public class ChatDbo {
     @ColumnInfo(name = "sender")
     private UUID sender;
 
-    public ChatDbo(@NonNull UUID id, String title, UUID recipient, UUID sender) {
+    @ColumnInfo(name = "handshake")
+    private UUID handshake;
+
+    public ChatDbo(@NonNull UUID id, String title, UUID recipient, UUID sender, UUID handshake) {
         this.id = id;
         this.title = title;
         this.recipient = recipient;
         this.sender = sender;
+        this.handshake = handshake;
     }
 
     @NonNull
@@ -35,38 +39,39 @@ public class ChatDbo {
         return id;
     }
 
-
     public void setId(@NonNull UUID id) {
         this.id = id;
     }
-
 
     public String getTitle() {
         return title;
     }
 
-
     public void setTitle(String title) {
         this.title = title;
     }
-
 
     public UUID getRecipient() {
         return recipient;
     }
 
-
     public void setRecipient(UUID recipient) {
         this.recipient = recipient;
     }
-
 
     public UUID getSender() {
         return sender;
     }
 
-
     public void setSender(UUID sender) {
         this.sender = sender;
+    }
+
+    public UUID getHandshake() {
+        return handshake;
+    }
+
+    public void setHandshake(UUID handshake) {
+        this.handshake = handshake;
     }
 }

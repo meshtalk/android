@@ -18,7 +18,7 @@ import tech.lerk.meshtalk.db.entities.HandshakeDbo;
 import tech.lerk.meshtalk.db.entities.IdentityDbo;
 import tech.lerk.meshtalk.db.entities.MessageDbo;
 
-@Database(version = 3, entities = {ChatDbo.class, MessageDbo.class, IdentityDbo.class, HandshakeDbo.class, ContactDbo.class})
+@Database(version = 4, entities = {ChatDbo.class, MessageDbo.class, IdentityDbo.class, HandshakeDbo.class, ContactDbo.class})
 @TypeConverters({Converters.class})
 public abstract class MeshtalkDatabase extends RoomDatabase {
     private static final String DB_NAME = "meshtalk_db";

@@ -64,39 +64,6 @@ public class Stuff {
         return reducedIV;
     }
 
-    public static void determineSelfId(UUID sender, UUID recipient, IdentityProvider identityProvider, Callback<UUID> callback) {
-        AsyncTask.execute(() ->
-                identityProvider.exists(sender, e -> {
-                    if (e != null && e) {
-                        callback.call(sender);
-                    } else {
-                        identityProvider.exists(recipient, e1 -> {
-                            if (e1 != null && e1) {
-                                callback.call(recipient);
-                            } else {
-                                callback.call(null);
-                            }
-                        });
-                    }
-                }));
-    }
-
-    public static void determineOtherId(UUID sender, UUID recipient, IdentityProvider identityProvider, Callback<UUID> callback) {
-        identityProvider.exists(sender, e -> {
-            if (e != null && e) {
-                callback.call(recipient);
-            } else {
-                identityProvider.exists(recipient, e1 -> {
-                    if (e1 != null && e1) {
-                        callback.call(sender);
-                    } else {
-                        callback.call(null);
-                    }
-                });
-            }
-        });
-    }
-
     public static AlertDialog getLoadingDialog(MainActivity activity,
                                                @Nullable DialogInterface.OnClickListener negativeButtonListener) {
         return getLoadingDialog(activity, negativeButtonListener, R.string.loading);

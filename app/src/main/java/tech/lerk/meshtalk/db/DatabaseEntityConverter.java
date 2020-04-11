@@ -143,6 +143,7 @@ public final class DatabaseEntityConverter {
             c1.setRecipient(c.getRecipient());
             c1.setSender(c.getSender());
             c1.setTitle(c.getTitle());
+            c1.setHandshake(c.getHandshake());
             return c1;
         }
         return null;
@@ -151,7 +152,7 @@ public final class DatabaseEntityConverter {
     @Nullable
     public static ChatDbo convert(@Nullable Chat c) {
         if (c != null) {
-            return new ChatDbo(c.getId(), c.getTitle(), c.getRecipient(), c.getSender());
+            return new ChatDbo(c.getId(), c.getTitle(), c.getRecipient(), c.getSender(), c.getHandshake());
         }
         return null;
     }

@@ -144,7 +144,8 @@ public class MessageGatewayClientService extends LifecycleService {
         try {
             Cipher cipher = Cipher.getInstance("RSA");
             cipher.init(Cipher.DECRYPT_MODE, identity.getPrivateKey());
-            return cipher.doFinal(Base64.getMimeDecoder().decode(handshake.getIv().getBytes(StandardCharsets.UTF_8)));
+            byte[] decodedIv = Base64.getMimeDecoder().decode(handshake.getIv().getBytes(StandardCharsets.UTF_8));
+            return cipher.doFinal(decodedIv);
         } catch (NoSuchAlgorithmException | InvalidKeyException |
                 NoSuchPaddingException | BadPaddingException | IllegalBlockSizeException e) {
             Log.e(TAG, "Unable to decrypt handshake '" + handshake.getId() + "' with identity '" + identity.getId() + "'");
