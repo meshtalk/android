@@ -31,17 +31,15 @@ import tech.lerk.meshtalk.entities.Message;
 public class SubmitMessageWorker extends GatewayWorker {
     private static final String TAG = SubmitMessageWorker.class.getCanonicalName();
 
-    private final Gson gson;
-
-    public SubmitMessageWorker(@NonNull Context context, @NonNull WorkerParameters params) {
-        super(context, params);
-        gson = Utils.getGson();
+    SubmitMessageWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
+        super(context, workerParams);
     }
 
     @NonNull
     @Override
     public ListenableWorker.Result doWork() {
         int errorCode = ERROR_INVALID_SETTINGS;
+        final Gson gson = Utils.getGson();
         String hostString = getGatewayInfo().toString() + "/messages/save";
         errorCode = ERROR_NONE;
         try {

@@ -73,8 +73,8 @@ import tech.lerk.meshtalk.workers.DataKeys;
 import tech.lerk.meshtalk.workers.SubmitHandshakeWorker;
 import tech.lerk.meshtalk.workers.SubmitMessageWorker;
 
-import static tech.lerk.meshtalk.MessageGatewayClientService.getIvFromHandshake;
-import static tech.lerk.meshtalk.MessageGatewayClientService.getSecretKeyFromHandshake;
+import static tech.lerk.meshtalk.services.MessageGatewayClientService.getIvFromHandshake;
+import static tech.lerk.meshtalk.services.MessageGatewayClientService.getSecretKeyFromHandshake;
 
 public class ConversationFragment extends Fragment {
 
@@ -200,9 +200,14 @@ public class ConversationFragment extends Fragment {
         messageProvider.getLiveMessagesByChat(currentChat.getId(), liveMessages -> {
             if (liveMessages != null) {
                 requireActivity().runOnUiThread(() ->
-                        liveMessages.observe(getViewLifecycleOwner(), messageDbos ->
-                                getUIMessages(messageDbos.stream().map(DatabaseEntityConverter::convert).collect(Collectors.toList()),
-                                        chatKey, chatIv, updatedUiMessages -> requireActivity().runOnUiThread(() -> updateUi(updatedUiMessages)))));
+                        liveMessages.observe(getViewLifecycleOwner(), messageDbos -> {
+                            List<Message> collect = messageDbos.stream()
+                                    .map(DatabaseEntityConverter::convert)
+                                    .collect(Collectors.toList());
+                            getUIMessages(collect, chatKey, chatIv, updatedUiMessages ->
+                                    requireActivity().runOnUiThread(() ->
+                                            updateUi(updatedUiMessages)));
+                        }));
             } else {
                 Log.e(TAG, "Unable to get messages LiveData!");
             }
@@ -214,14 +219,19 @@ public class ConversationFragment extends Fragment {
                                @NonNull byte[] chatIv,
                                Callback<ArrayList<UIMessage>> callback) {
         AsyncTask.execute(() -> {
+            String errorText = getString(R.string.error_decrypting_message);
             ArrayList<UIMessage> uiMessages = new ArrayList<>();
-            messages.forEach(m ->
-                    Stuff.getContactOrIdentityForId(m.getSender(), contactProvider, identityProvider, sender -> {
-                        if (sender != null) {
-                            uiMessages.add(UIMessage.of(m, chatKey, chatIv, sender, messageProvider));
+            for (Message m : messages) {
+                Stuff.getContactOrIdentityForId(m.getSender(), contactProvider, identityProvider, sender -> {
+                    if (sender != null) {
+                        UIMessage msg = UIMessage.of(m, chatKey, chatIv, sender, messageProvider);
+                        if(msg.getDecryptedText() == null) {
+                            msg.setDecryptedText(errorText);
                         }
-                    })
-            );
+                        uiMessages.add(msg);
+                    }
+                });
+            }
             callback.call(uiMessages);
         });
     }
@@ -234,8 +244,6 @@ public class ConversationFragment extends Fragment {
                 super.notifyDataSetChanged();
                 if (listViewAdapter.getCount() > 0) {
                     emptyList.setVisibility(View.INVISIBLE);
-                } else {
-                    emptyList.setVisibility(View.VISIBLE);
                 }
             }
 
@@ -298,14 +306,23 @@ public class ConversationFragment extends Fragment {
 
     private void updateUi(@Nullable final ArrayList<UIMessage> updatedMessages) {
         if (updatedMessages != null && !updatedMessages.isEmpty()) {
-            listViewAdapter.clear();
-            listViewAdapter.addAll(updatedMessages);
+            ArrayList<UUID> existingIds = new ArrayList<>();
+            for (int i = 0; i < listViewAdapter.getCount(); i++) {
+                UIMessage item = listViewAdapter.getItem(i);
+                if (item != null) {
+                    existingIds.add(item.getId());
+                }
+            }
+            listViewAdapter.addAll(updatedMessages.stream()
+                    .filter(m -> !existingIds.contains(m.getId())).collect(Collectors.toList()));
             listViewAdapter.sort(Sendable::compareTo);
+            listViewAdapter.notifyDataSetChanged();
+            emptyList.setVisibility(View.INVISIBLE);
             if (preferences.getBoolean(Preferences.CHAT_SCROLL_TO_BOTTOM_ON_NEW_MESSAGES.toString(), true)) {
                 scrollToBottom();
             }
         } else {
-            Log.d(TAG, "Messages are null or empty!");
+            Log.d(TAG, "Messages are null!");
         }
     }
 
@@ -314,7 +331,7 @@ public class ConversationFragment extends Fragment {
         UUID otherId = chat.getRecipient();
         if (selfId != null && otherId != null) {
             messageProvider.encryptMessage(message, chat, encryptedMessage -> {
-                Data messageData = new Data.Builder()
+                final Data messageData = new Data.Builder()
                         .putString(DataKeys.MESSAGE_ID.toString(), UUID.randomUUID().toString())
                         .putString(DataKeys.MESSAGE_CHAT.toString(), chat.getId().toString())
                         .putString(DataKeys.MESSAGE_SENDER.toString(), selfId.toString())
@@ -326,7 +343,7 @@ public class ConversationFragment extends Fragment {
                 requireActivity().runOnUiThread(() -> {
                     OneTimeWorkRequest sendMessageWorkRequest = new OneTimeWorkRequest.Builder(SubmitMessageWorker.class)
                             .setInputData(messageData).build();
-                    WorkManager workManager = WorkManager.getInstance(requireActivity());
+                    WorkManager workManager = ((MainActivity) requireActivity()).getWorkManager();
                     workManager.enqueue(sendMessageWorkRequest);
                     workManager.getWorkInfoByIdLiveData(sendMessageWorkRequest.getId()).observe(requireActivity(), info -> {
                         if (info != null && info.getState().isFinished()) {
@@ -477,7 +494,7 @@ public class ConversationFragment extends Fragment {
 
         OneTimeWorkRequest sendHandshakeWorkRequest = new OneTimeWorkRequest.Builder(SubmitHandshakeWorker.class)
                 .setInputData(handshakeData).build();
-        WorkManager workManager = WorkManager.getInstance(requireActivity());
+        WorkManager workManager = ((MainActivity) requireActivity()).getWorkManager();
         workManager.enqueue(sendHandshakeWorkRequest);
 
         MainActivity.maybeRunOnUiThread(() ->
@@ -550,7 +567,7 @@ public class ConversationFragment extends Fragment {
             requireActivity().runOnUiThread(() -> {
                         OneTimeWorkRequest sendHandshakeWorkRequest = new OneTimeWorkRequest.Builder(SubmitHandshakeWorker.class)
                                 .setInputData(handshakeData).build();
-                        WorkManager workManager = WorkManager.getInstance(requireContext());
+                        WorkManager workManager = ((MainActivity) requireActivity()).getWorkManager();
                         workManager.enqueue(sendHandshakeWorkRequest);
                         workManager.getWorkInfoByIdLiveData(sendHandshakeWorkRequest.getId()).observe(requireActivity(), info -> {
                             if (info != null && info.getState().isFinished()) {

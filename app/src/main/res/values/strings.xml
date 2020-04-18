@@ -175,4 +175,5 @@
     <string name="progress_self_destruct_stopping_services">Stopping services…</string>
     <string name="not_connected">Not connected…</string>
     <string name="action_send">Send</string>
+    <string name="error_decrypting_message">Error decrypting message!</string>
 </resources>

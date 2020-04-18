@@ -17,7 +17,8 @@ public class UIMessage extends Message {
     }
 
     public static UIMessage of(@NonNull Message m,
-                               @NonNull SecretKey chatKey, @NonNull byte[] chatIv,
+                               @NonNull SecretKey chatKey,
+                               @NonNull byte[] chatIv,
                                @NonNull Contact sender,
                                @NonNull MessageProvider messageProvider) {
         UIMessage u = new UIMessage();

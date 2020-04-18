@@ -66,11 +66,6 @@ public class FetchHandshakesWorker extends GatewayWorker {
         GatewayInfo gatewayInfo = getGatewayInfo();
         String defaultIdentityString = preferences.getString(Preferences.DEFAULT_IDENTITY.toString(), null);
         if (defaultIdentityString != null) {
-            if (Looper.myLooper() == null) {
-                Looper.prepare();
-            }
-            Toast.makeText(getApplicationContext(), R.string.info_fetching_handshakes, Toast.LENGTH_SHORT).show();
-            Looper.loop();
             ArrayList<Handshake> handshakes = new ArrayList<>();
 
             Pair<Integer, ArrayList<Handshake>> senderPair = fetchHandshakesSender(defaultIdentityString, gatewayInfo);

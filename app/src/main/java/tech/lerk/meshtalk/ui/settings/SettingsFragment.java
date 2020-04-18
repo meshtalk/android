@@ -17,7 +17,7 @@ import java.util.Objects;
 
 import tech.lerk.meshtalk.KeyHolder;
 import tech.lerk.meshtalk.MainActivity;
-import tech.lerk.meshtalk.MessageGatewayClientService;
+import tech.lerk.meshtalk.services.MessageGatewayClientService;
 import tech.lerk.meshtalk.R;
 import tech.lerk.meshtalk.Preferences;
 import tech.lerk.meshtalk.providers.impl.ChatProvider;

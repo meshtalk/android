@@ -27,7 +27,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 
 import tech.lerk.meshtalk.Callback;
-import tech.lerk.meshtalk.MessageGatewayClientService;
+import tech.lerk.meshtalk.services.MessageGatewayClientService;
 import tech.lerk.meshtalk.Stuff;
 import tech.lerk.meshtalk.db.DatabaseEntityConverter;
 import tech.lerk.meshtalk.db.entities.MessageDbo;

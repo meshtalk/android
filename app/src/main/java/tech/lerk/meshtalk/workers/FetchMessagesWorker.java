@@ -51,11 +51,6 @@ public class FetchMessagesWorker extends GatewayWorker {
         GatewayInfo gatewayInfo = getGatewayInfo();
         String defaultdentityString = preferences.getString(Preferences.DEFAULT_IDENTITY.toString(), null);
         if (defaultdentityString != null) {
-            if (Looper.myLooper() == null) {
-                Looper.prepare();
-            }
-            Toast.makeText(getApplicationContext(), R.string.info_fetching_messages, Toast.LENGTH_SHORT).show();
-            Looper.loop();
             final String receiverUrl = gatewayInfo.toString() + "/messages/receiver/" + defaultdentityString;
             final String senderUrl = gatewayInfo.toString() + "/messages/sender/" + defaultdentityString;
             final boolean[] isDone = {false};

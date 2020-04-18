@@ -41,6 +41,7 @@ import java.util.UUID;
 
 import im.delight.android.identicons.Identicon;
 import tech.lerk.meshtalk.providers.impl.IdentityProvider;
+import tech.lerk.meshtalk.services.MessageGatewayClientService;
 import tech.lerk.meshtalk.ui.UpdatableFragment;
 import tech.lerk.meshtalk.workers.DataKeys;
 import tech.lerk.meshtalk.workers.GatewayMetaWorker;
@@ -55,6 +56,7 @@ public class MainActivity extends AppCompatActivity {
     private NavController navController;
     private NavigationView navigationView;
     private boolean runService = true;
+    private WorkManager workManager;
 
     public static void maybeUpdateViews() {
         if (instance != null) {
@@ -103,6 +105,7 @@ public class MainActivity extends AppCompatActivity {
         instance = this;
         keyHolder = KeyHolder.get(getApplicationContext());
         preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+        workManager = WorkManager.getInstance(this);
 
         boolean firstStart = preferences.getBoolean(Preferences.FIRST_START.toString(), true);
         if (firstStart) {
@@ -119,7 +122,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateNavHeaderConnectionState() {
         OneTimeWorkRequest fetchMetaWorkRequest = new OneTimeWorkRequest.Builder(GatewayMetaWorker.class).build();
-        WorkManager workManager = WorkManager.getInstance(this);
         workManager.enqueue(fetchMetaWorkRequest);
 
         TextView connectionText = navigationView.getHeaderView(0).findViewById(R.id.nav_header_connection_text);
@@ -349,5 +351,9 @@ public class MainActivity extends AppCompatActivity {
 
     public void setRunService(boolean runService) {
         this.runService = runService;
+    }
+
+    public WorkManager getWorkManager() {
+        return workManager;
     }
 }

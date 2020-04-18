@@ -8,7 +8,7 @@ android {
         applicationId "tech.lerk.meshtalk"
         minSdkVersion 26
         targetSdkVersion 29
-        versionCode 2
+        versionCode 3
         versionName "1.0.2-pre"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"

@@ -39,6 +39,13 @@
             app:key="use_message_gateway"
             app:summary="@string/pref_summary_use_message_gateway"
             app:title="@string/pref_title_use_message_gateway" />
+        <ListPreference
+            android:entries="@array/connection_protocol_values"
+            app:defaultValue="http"
+            app:entryValues="@array/connection_protocol_values"
+            app:key="message_gateway_protocol"
+            app:summary="@string/pref_summary_message_gateway_protocol"
+            app:title="@string/pref_title_message_gateway_protocol" />
         <tech.lerk.meshtalk.ui.settings.HostnameEditTextPreference
             app:defaultValue="@string/pref_default_message_gateway_host"
             app:key="message_gateway_host"
@@ -54,13 +61,6 @@
             app:key="message_gateway_path"
             app:summary="@string/pref_summary_message_gateway_path"
             app:title="@string/pref_title_message_gateway_path" />
-        <ListPreference
-            android:entries="@array/connection_protocol_values"
-            app:defaultValue="http"
-            app:entryValues="@array/connection_protocol_values"
-            app:key="message_gateway_protocol"
-            app:summary="@string/pref_summary_message_gateway_protocol"
-            app:title="@string/pref_title_message_gateway_protocol" />
     </PreferenceCategory>
 
     <PreferenceCategory app:title="@string/pref_category_security">

@@ -28,7 +28,7 @@
             </intent-filter>
         </activity>
 
-        <service android:name=".MessageGatewayClientService"
+        <service android:name=".services.MessageGatewayClientService"
             android:description="@string/service_desc_messages"
             android:label="@string/service_label_messages"
             />

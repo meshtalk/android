@@ -1,4 +1,4 @@
-package tech.lerk.meshtalk;
+package tech.lerk.meshtalk.services;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -28,6 +28,7 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
+import tech.lerk.meshtalk.Preferences;
 import tech.lerk.meshtalk.entities.Handshake;
 import tech.lerk.meshtalk.entities.Identity;
 import tech.lerk.meshtalk.workers.DataKeys;
