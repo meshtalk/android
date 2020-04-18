@@ -2,7 +2,6 @@ package tech.lerk.meshtalk;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.os.AsyncTask;
 import android.os.IBinder;
 import android.util.Log;
 import android.widget.Toast;
@@ -17,15 +16,10 @@ import androidx.work.NetworkType;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
 
-import com.google.gson.Gson;
-
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.Base64;
-import java.util.UUID;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -34,28 +28,16 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
-import tech.lerk.meshtalk.entities.Chat;
 import tech.lerk.meshtalk.entities.Handshake;
 import tech.lerk.meshtalk.entities.Identity;
-import tech.lerk.meshtalk.providers.impl.ChatProvider;
-import tech.lerk.meshtalk.providers.impl.ContactProvider;
-import tech.lerk.meshtalk.providers.impl.HandshakeProvider;
-import tech.lerk.meshtalk.providers.impl.IdentityProvider;
 import tech.lerk.meshtalk.workers.DataKeys;
 import tech.lerk.meshtalk.workers.FetchHandshakesWorker;
 import tech.lerk.meshtalk.workers.FetchMessagesWorker;
-import tech.lerk.meshtalk.workers.SubmitHandshakeWorker;
 
 public class MessageGatewayClientService extends LifecycleService {
     private static final String TAG = MessageGatewayClientService.class.getCanonicalName();
 
     private SharedPreferences preferences;
-    private Gson gson;
-
-    private ChatProvider chatProvider;
-    private ContactProvider contactProvider;
-    private IdentityProvider identityProvider;
-    private HandshakeProvider handshakeProvider;
 
     private void startFetchMessageWorker() {
         OneTimeWorkRequest fetchMessagesRequest = new OneTimeWorkRequest
@@ -156,11 +138,6 @@ public class MessageGatewayClientService extends LifecycleService {
     @Override
     public void onCreate() {
         super.onCreate();
-        gson = Utils.getGson();
-        chatProvider = ChatProvider.get(getApplicationContext());
-        contactProvider = ContactProvider.get(getApplicationContext());
-        identityProvider = IdentityProvider.get(getApplicationContext());
-        handshakeProvider = HandshakeProvider.get(getApplicationContext());
         preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
     }
 

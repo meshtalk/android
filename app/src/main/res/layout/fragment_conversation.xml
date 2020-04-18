@@ -12,8 +12,8 @@
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
-        android:stackFromBottom="true"
-        android:layout_marginBottom="@dimen/message_list_padding" />
+        android:layout_marginBottom="@dimen/message_list_padding"
+        android:stackFromBottom="true" />
 
     <TextView
         android:id="@+id/message_list_empty"
@@ -35,30 +35,48 @@
         android:tint="#fff"
         android:visibility="invisible" />
 
-    <androidx.cardview.widget.CardView
+    <RelativeLayout
         android:id="@+id/message_edit_text_wrapper"
         android:layout_width="match_parent"
         android:layout_height="@dimen/message_list_padding"
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
+        android:background="@android:color/background_light"
         android:elevation="8dp"
-        app:cardElevation="10dp"
-        app:cardPreventCornerOverlap="false"
         android:paddingStart="8dp"
-        android:paddingEnd="8dp"
-        app:cardCornerRadius="5dp">
+        android:paddingEnd="8dp">
 
         <androidx.emoji.widget.EmojiEditText
             android:id="@+id/message_edit_text"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
             android:autofillHints="text"
             android:hint="@string/hint_message"
             android:inputType="text|textMultiLine|textShortMessage|textAutoCorrect|textAutoComplete|textImeMultiLine"
-            android:maxLines="10" />
+            android:maxLines="10"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp" />
 
-    </androidx.cardview.widget.CardView>
+        <ImageButton
+            android:id="@+id/send_button"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:contentDescription="@string/action_send"
+            android:src="@drawable/ic_send_black_24dp"
+            android:tint="@color/accent"
+            android:backgroundTint="#00000000"/>
+
+        <ProgressBar
+            android:id="@+id/send_loader"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:visibility="invisible" />
+    </RelativeLayout>
 
 </RelativeLayout>

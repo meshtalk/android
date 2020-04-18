@@ -174,4 +174,5 @@
     <string name="dialog_waiting_for_handshake_checking_title">Checking for Handshake…</string>
     <string name="progress_self_destruct_stopping_services">Stopping services…</string>
     <string name="not_connected">Not connected…</string>
+    <string name="action_send">Send</string>
 </resources>

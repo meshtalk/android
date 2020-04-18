@@ -70,7 +70,7 @@ public class FetchHandshakesWorker extends GatewayWorker {
                 Looper.prepare();
             }
             Toast.makeText(getApplicationContext(), R.string.info_fetching_handshakes, Toast.LENGTH_SHORT).show();
-
+            Looper.loop();
             ArrayList<Handshake> handshakes = new ArrayList<>();
 
             Pair<Integer, ArrayList<Handshake>> senderPair = fetchHandshakesSender(defaultIdentityString, gatewayInfo);

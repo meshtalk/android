@@ -12,6 +12,7 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.AbsListView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -231,7 +232,7 @@ public class ConversationFragment extends Fragment {
             @Override
             public void notifyDataSetChanged() {
                 super.notifyDataSetChanged();
-                if (messages.size() > 0) {
+                if (listViewAdapter.getCount() > 0) {
                     emptyList.setVisibility(View.INVISIBLE);
                 } else {
                     emptyList.setVisibility(View.VISIBLE);
@@ -267,19 +268,25 @@ public class ConversationFragment extends Fragment {
         scrollButton.setOnClickListener(v -> scrollToBottom());
 
         EditText messageET = root.findViewById(R.id.message_edit_text);
-        messageET.setImeOptions(EditorInfo.IME_ACTION_SEND);
+        messageET.setImeOptions(EditorInfo.IME_ACTION_NONE);
         messageET.setInputType(EditorInfo.TYPE_TEXT_FLAG_MULTI_LINE);
-        messageET.setOnEditorActionListener((v, actionId, event) -> {
-            if (actionId == EditorInfo.IME_ACTION_SEND) {
-                messageET.setEnabled(false);
-                sendMessage(messageET.getText().toString(), currentChat, success -> {
-                    if (success != null && success) {
-                        messageET.setText("");
-                    }
-                    messageET.setEnabled(true);
-                });
-            }
-            return false;
+
+        ProgressBar sendLoader = root.findViewById(R.id.send_loader);
+        sendLoader.setIndeterminate(true);
+
+        ImageButton sendButton = root.findViewById(R.id.send_button);
+        sendButton.setOnClickListener((v) -> {
+            sendButton.setVisibility(View.INVISIBLE);
+            sendLoader.setVisibility(View.VISIBLE);
+            messageET.setEnabled(false);
+            sendMessage(messageET.getText().toString(), currentChat, success -> {
+                if (success != null && success) {
+                    messageET.setText("");
+                }
+                sendButton.setVisibility(View.VISIBLE);
+                sendLoader.setVisibility(View.INVISIBLE);
+                messageET.setEnabled(true);
+            });
         });
 
         checkForHandshake();
@@ -289,26 +296,16 @@ public class ConversationFragment extends Fragment {
         listView.smoothScrollToPositionFromTop(listViewAdapter.getCount() + 1, 0);
     }
 
-    private void updateUi(@Nullable ArrayList<UIMessage> updatedMessages) {
-        if (updatedMessages != null) {
-            for (int i = 0; i < listViewAdapter.getCount(); i++) {
-                updatedMessages.add(listViewAdapter.getItem(i));
-            }
+    private void updateUi(@Nullable final ArrayList<UIMessage> updatedMessages) {
+        if (updatedMessages != null && !updatedMessages.isEmpty()) {
             listViewAdapter.clear();
-            ArrayList<UIMessage> uniqueMessages = new ArrayList<>();
-            updatedMessages.forEach(m -> {
-                boolean duplicatedId = uniqueMessages.stream().anyMatch(uim -> uim.getId().equals(m.getId()));
-                if (!duplicatedId) {
-                    uniqueMessages.add(m);
-                }
-            });
-            listViewAdapter.addAll(uniqueMessages);
+            listViewAdapter.addAll(updatedMessages);
             listViewAdapter.sort(Sendable::compareTo);
             if (preferences.getBoolean(Preferences.CHAT_SCROLL_TO_BOTTOM_ON_NEW_MESSAGES.toString(), true)) {
                 scrollToBottom();
             }
         } else {
-            Log.e(TAG, "Messages are null!");
+            Log.d(TAG, "Messages are null or empty!");
         }
     }
 
@@ -326,41 +323,41 @@ public class ConversationFragment extends Fragment {
                         .putString(DataKeys.MESSAGE_CONTENT.toString(), encryptedMessage)
                         .build();
 
-                OneTimeWorkRequest sendMessageWorkRequest = new OneTimeWorkRequest.Builder(SubmitMessageWorker.class)
-                        .setInputData(messageData).build();
-                WorkManager workManager = WorkManager.getInstance(requireContext());
-                workManager.enqueue(sendMessageWorkRequest);
-
-                requireActivity().runOnUiThread(() ->
-                        workManager.getWorkInfoByIdLiveData(sendMessageWorkRequest.getId()).observe(requireActivity(), info -> {
-                            if (info != null && info.getState().isFinished()) {
-                                Data data = info.getOutputData();
-                                int errorCode = data.getInt(DataKeys.ERROR_CODE.toString(), -1);
-                                switch (errorCode) {
-                                    case SubmitMessageWorker.ERROR_INVALID_SETTINGS:
-                                    case SubmitMessageWorker.ERROR_URI:
-                                    case SubmitMessageWorker.ERROR_CONNECTION:
-                                    case SubmitMessageWorker.ERROR_PARSING:
-                                        String msg = "Got error " + errorCode + " while sending message!";
-                                        Log.e(TAG, msg);
-                                        Toast.makeText(requireContext(), msg, Toast.LENGTH_LONG).show();
-                                        callback.call(false);
-                                        break;
-                                    case SubmitMessageWorker.ERROR_NONE:
-                                        if (preferences.getBoolean(Preferences.TOAST_MESSAGE_SENT.toString(), true)) {
-                                            Toast.makeText(requireContext(), R.string.success_sending_message, Toast.LENGTH_LONG).show();
-                                        }
-                                        callback.call(true);
-                                        break;
-                                    default:
-                                        Log.wtf(TAG, "Invalid errorCode: " + errorCode + "!");
-                                        break;
-                                }
+                requireActivity().runOnUiThread(() -> {
+                    OneTimeWorkRequest sendMessageWorkRequest = new OneTimeWorkRequest.Builder(SubmitMessageWorker.class)
+                            .setInputData(messageData).build();
+                    WorkManager workManager = WorkManager.getInstance(requireActivity());
+                    workManager.enqueue(sendMessageWorkRequest);
+                    workManager.getWorkInfoByIdLiveData(sendMessageWorkRequest.getId()).observe(requireActivity(), info -> {
+                        if (info != null && info.getState().isFinished()) {
+                            Data data = info.getOutputData();
+                            int errorCode = data.getInt(DataKeys.ERROR_CODE.toString(), -1);
+                            switch (errorCode) {
+                                case SubmitMessageWorker.ERROR_INVALID_SETTINGS:
+                                case SubmitMessageWorker.ERROR_URI:
+                                case SubmitMessageWorker.ERROR_CONNECTION:
+                                case SubmitMessageWorker.ERROR_PARSING:
+                                    String msg = "Got error " + errorCode + " while sending message!";
+                                    Log.e(TAG, msg);
+                                    Toast.makeText(requireContext(), msg, Toast.LENGTH_LONG).show();
+                                    callback.call(false);
+                                    return;
+                                case SubmitMessageWorker.ERROR_NONE:
+                                    if (preferences.getBoolean(Preferences.TOAST_MESSAGE_SENT.toString(), true)) {
+                                        Toast.makeText(requireContext(), R.string.success_sending_message, Toast.LENGTH_LONG).show();
+                                    }
+                                    callback.call(true);
+                                    return;
+                                default:
+                                    Log.wtf(TAG, "Invalid errorCode: " + errorCode + "!");
+                                    callback.call(false);
                             }
-                        })
-                );
+                        }
+                    });
+                });
             });
         } else {
+            callback.call(false);
             throw new IllegalStateException("Unable to determine ids!");
         }
 
